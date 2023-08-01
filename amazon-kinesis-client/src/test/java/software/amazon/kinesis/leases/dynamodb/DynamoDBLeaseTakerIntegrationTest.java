@@ -16,22 +16,18 @@ package software.amazon.kinesis.leases.dynamodb;
 
 import java.util.Collection;
 import java.util.Map;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 import software.amazon.kinesis.leases.Lease;
 import software.amazon.kinesis.leases.LeaseIntegrationTest;
 import software.amazon.kinesis.leases.exceptions.LeasingException;
 import software.amazon.kinesis.metrics.NullMetricsFactory;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DynamoDBLeaseTakerIntegrationTest extends LeaseIntegrationTest {
@@ -105,7 +101,28 @@ public class DynamoDBLeaseTakerIntegrationTest extends LeaseIntegrationTest {
 
         builder.withLease("4", "bar").build();
 
+        // setting multiplier to unusually high number to avoid very old lease taking
+        taker.withVeryOldLeaseDurationNanosMultipler(5000000000L);
         builder.takeMutateAssert(taker, 2);
+    }
+
+    /**
+     * Verify that we take all very old leases by setting up an environment where there are 4 leases and 2 workers,
+     * only one of which holds a lease. This leaves 3 free leases. LeaseTaker should take all 3 leases since they
+     * are denoted as very old.
+     */
+    @Test
+    public void testVeryOldLeaseTaker() throws LeasingException {
+        TestHarnessBuilder builder = new TestHarnessBuilder(leaseRefresher);
+
+        for (int i = 0; i < 3; i++) {
+            builder.withLease(Integer.toString(i), null);
+        }
+
+        builder.withLease("4", "bar").build();
+
+        // setting multiplier to unusually high number to avoid very old lease taking
+        builder.takeMutateAssert(taker, 3);
     }
 
     /**
@@ -124,7 +141,8 @@ public class DynamoDBLeaseTakerIntegrationTest extends LeaseIntegrationTest {
                 .withLease("5", "foo")
                 .build();
 
-        // In the current DynamoDBLeaseTaker implementation getAllLeases() gets leases from an internal cache that is built during takeLeases() operation
+        // In the current DynamoDBLeaseTaker implementation getAllLeases() gets leases from an internal cache that is
+        // built during takeLeases() operation
         assertThat(taker.allLeases().size(), equalTo(0));
 
         taker.takeLeases();
@@ -132,6 +150,32 @@ public class DynamoDBLeaseTakerIntegrationTest extends LeaseIntegrationTest {
         Collection<Lease> allLeases = taker.allLeases();
         assertThat(allLeases.size(), equalTo(addedLeases.size()));
         assertThat(addedLeases.values().containsAll(allLeases), equalTo(true));
+    }
+
+    /**
+     * Sets the leaseDurationMillis to 0, ensuring a get request to update the existing lease after computing
+     * leases to take
+     */
+    @Test
+    public void testSlowGetAllLeases() throws LeasingException {
+        long leaseDurationMillis = 0;
+        taker = new DynamoDBLeaseTaker(leaseRefresher,
+                "foo",
+                leaseDurationMillis,
+                new NullMetricsFactory());
+        TestHarnessBuilder builder = new TestHarnessBuilder(leaseRefresher);
+
+        Map<String, Lease> addedLeases = builder.withLease("1", "bar")
+                .withLease("2", "bar")
+                .withLease("5", "foo")
+                .build();
+
+        assertThat(taker.allLeases().size(), equalTo(0));
+        taker.takeLeases();
+
+        Collection<Lease> allLeases = taker.allLeases();
+        assertThat(allLeases.size(), equalTo(addedLeases.size()));
+        assertEquals(addedLeases.values().size(), allLeases.size());
     }
 
     /**
@@ -173,7 +217,7 @@ public class DynamoDBLeaseTakerIntegrationTest extends LeaseIntegrationTest {
         builder.build();
 
         // Assert that one lease was stolen from baz.
-        Map<String, Lease> takenLeases = builder.takeMutateAssert(taker, 1);
+        Map<String, Lease> takenLeases = builder.stealMutateAssert(taker, 1);
 
         // Assert that it was one of baz's leases (shardId != 1)
         String shardIdStolen = takenLeases.keySet().iterator().next();

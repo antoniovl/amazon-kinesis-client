@@ -26,8 +26,9 @@ import software.amazon.kinesis.retrieval.GetRecordsRetrievalStrategy;
 @Data
 @KinesisClientInternalApi
 public class SynchronousGetRecordsRetrievalStrategy implements GetRecordsRetrievalStrategy {
+
     @NonNull
-    private final KinesisDataFetcher dataFetcher;
+    private final DataFetcher dataFetcher;
 
     @Override
     public GetRecordsResponse getRecords(final int maxRecords) {
@@ -45,9 +46,14 @@ public class SynchronousGetRecordsRetrievalStrategy implements GetRecordsRetriev
     public boolean isShutdown() {
         return false;
     }
-    
+
     @Override
     public KinesisDataFetcher getDataFetcher() {
+        throw new UnsupportedOperationException("Deprecated. Use dataFetcher() to retrieve a dataFetcher");
+    }
+
+    @Override
+    public DataFetcher dataFetcher() {
         return dataFetcher;
     }
 }

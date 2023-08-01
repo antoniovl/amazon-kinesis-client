@@ -15,19 +15,18 @@
 package software.amazon.kinesis.leases;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.collect.Collections2;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import software.amazon.kinesis.common.HashKeyRangeForLease;
 import software.amazon.kinesis.retrieval.kpl.ExtendedSequenceNumber;
 
 /**
@@ -40,10 +39,10 @@ import software.amazon.kinesis.retrieval.kpl.ExtendedSequenceNumber;
 @NoArgsConstructor
 @Getter
 @Accessors(fluent = true)
-@EqualsAndHashCode(exclude = {"concurrencyToken", "lastCounterIncrementNanos"})
+@EqualsAndHashCode(exclude = {"concurrencyToken", "lastCounterIncrementNanos", "childShardIds", "pendingCheckpointState", "isMarkedForLeaseSteal"})
 @ToString
 public class Lease {
-    /*
+    /**
      * See javadoc for System.nanoTime - summary:
      * 
      * Sometimes System.nanoTime's return values will wrap due to overflow. When they do, the difference between two
@@ -52,43 +51,58 @@ public class Lease {
     private static final long MAX_ABS_AGE_NANOS = TimeUnit.DAYS.toNanos(365);
 
     /**
-     * @return leaseKey - identifies the unit of work associated with this lease.
+     * Identifies the unit of work associated with this lease.
      */
     private String leaseKey;
     /**
-     * @return current owner of the lease, may be null.
+     * Current owner of the lease, may be null.
      */
     private String leaseOwner;
     /**
-     * @return leaseCounter is incremented periodically by the holder of the lease. Used for optimistic locking.
+     * LeaseCounter is incremented periodically by the holder of the lease. Used for optimistic locking.
      */
     private Long leaseCounter = 0L;
 
-    /*
+    /**
      * This field is used to prevent updates to leases that we have lost and re-acquired. It is deliberately not
      * persisted in DynamoDB and excluded from hashCode and equals.
      */
     private UUID concurrencyToken;
 
-    /*
+    /**
      * This field is used by LeaseRenewer and LeaseTaker to track the last time a lease counter was incremented. It is
      * deliberately not persisted in DynamoDB and excluded from hashCode and equals.
      */
     private Long lastCounterIncrementNanos;
     /**
-     * @return most recently application-supplied checkpoint value. During fail over, the new worker will pick up after
+     * Most recently application-supplied checkpoint value. During fail over, the new worker will pick up after
      *         the old worker's last checkpoint.
      */
     private ExtendedSequenceNumber checkpoint;
     /**
-     * @return pending checkpoint, possibly null.
+     * Pending checkpoint, possibly null.
      */
     private ExtendedSequenceNumber pendingCheckpoint;
+
     /**
-     * @return count of distinct lease holders between checkpoints.
+     * Last pending checkpoint state, possibly null. Deliberately excluded from hashCode and equals.
+     */
+    private byte[] pendingCheckpointState;
+
+    /**
+     * Denotes whether the lease is marked for stealing. Deliberately excluded from hashCode and equals and
+     * not persisted in DynamoDB.
+     */
+    @Setter
+    private boolean isMarkedForLeaseSteal;
+
+    /**
+     * Count of distinct lease holders between checkpoints.
      */
     private Long ownerSwitchesSinceCheckpoint = 0L;
-    private Set<String> parentShardIds = new HashSet<>();
+    private final Set<String> parentShardIds = new HashSet<>();
+    private final Set<String> childShardIds = new HashSet<>();
+    private HashKeyRangeForLease hashKeyRangeForLease;
 
     /**
      * Copy constructor, used by clone().
@@ -98,13 +112,24 @@ public class Lease {
     protected Lease(Lease lease) {
         this(lease.leaseKey(), lease.leaseOwner(), lease.leaseCounter(), lease.concurrencyToken(),
                 lease.lastCounterIncrementNanos(), lease.checkpoint(), lease.pendingCheckpoint(),
-                lease.ownerSwitchesSinceCheckpoint(), lease.parentShardIds());
+                lease.ownerSwitchesSinceCheckpoint(), lease.parentShardIds(), lease.childShardIds(),
+                lease.pendingCheckpointState(), lease.hashKeyRangeForLease());
+    }
+
+    @Deprecated
+    public Lease(final String leaseKey, final String leaseOwner, final Long leaseCounter,
+                 final UUID concurrencyToken, final Long lastCounterIncrementNanos,
+                 final ExtendedSequenceNumber checkpoint, final ExtendedSequenceNumber pendingCheckpoint,
+                 final Long ownerSwitchesSinceCheckpoint, final Set<String> parentShardIds) {
+        this(leaseKey, leaseOwner, leaseCounter, concurrencyToken, lastCounterIncrementNanos, checkpoint, pendingCheckpoint,
+                ownerSwitchesSinceCheckpoint, parentShardIds, new HashSet<>(), null, null);
     }
 
     public Lease(final String leaseKey, final String leaseOwner, final Long leaseCounter,
                     final UUID concurrencyToken, final Long lastCounterIncrementNanos,
                     final ExtendedSequenceNumber checkpoint, final ExtendedSequenceNumber pendingCheckpoint,
-                    final Long ownerSwitchesSinceCheckpoint, final Set<String> parentShardIds) {
+                    final Long ownerSwitchesSinceCheckpoint, final Set<String> parentShardIds, final Set<String> childShardIds,
+                    final byte[] pendingCheckpointState, final HashKeyRangeForLease hashKeyRangeForLease) {
         this.leaseKey = leaseKey;
         this.leaseOwner = leaseOwner;
         this.leaseCounter = leaseCounter;
@@ -116,6 +141,12 @@ public class Lease {
         if (parentShardIds != null) {
             this.parentShardIds.addAll(parentShardIds);
         }
+        if (childShardIds != null) {
+            this.childShardIds.addAll(childShardIds);
+        }
+        this.hashKeyRangeForLease = hashKeyRangeForLease;
+        this.pendingCheckpointState = pendingCheckpointState;
+        this.isMarkedForLeaseSteal = false;
     }
 
     /**
@@ -135,7 +166,9 @@ public class Lease {
         ownerSwitchesSinceCheckpoint(lease.ownerSwitchesSinceCheckpoint());
         checkpoint(lease.checkpoint);
         pendingCheckpoint(lease.pendingCheckpoint);
+        pendingCheckpointState(lease.pendingCheckpointState);
         parentShardIds(lease.parentShardIds);
+        childShardIds(lease.childShardIds);
     }
 
     /**
@@ -215,6 +248,15 @@ public class Lease {
     }
 
     /**
+     * Sets pending checkpoint state.
+     *
+     * @param pendingCheckpointState can be null
+     */
+    public void pendingCheckpointState(byte[] pendingCheckpointState) {
+        this.pendingCheckpointState = pendingCheckpointState;
+    }
+
+    /**
      * Sets ownerSwitchesSinceCheckpoint.
      *
      * @param ownerSwitchesSinceCheckpoint may not be null
@@ -234,6 +276,27 @@ public class Lease {
     }
 
     /**
+     * Sets childShardIds.
+     *
+     * @param childShardIds may not be null
+     */
+    public void childShardIds(@NonNull final Collection<String> childShardIds) {
+        this.childShardIds.addAll(childShardIds);
+    }
+
+    /**
+     * Set the hash range key for this shard.
+     * @param hashKeyRangeForLease
+     */
+    public void hashKeyRange(HashKeyRangeForLease hashKeyRangeForLease) {
+        if (this.hashKeyRangeForLease == null) {
+            this.hashKeyRangeForLease = hashKeyRangeForLease;
+        } else if (!this.hashKeyRangeForLease.equals(hashKeyRangeForLease)) {
+            throw new IllegalArgumentException("hashKeyRange is immutable");
+        }
+    }
+
+    /**
      * Sets leaseOwner.
      * 
      * @param leaseOwner may be null.
@@ -250,4 +313,5 @@ public class Lease {
     public Lease copy() {
         return new Lease(this);
     }
+
 }

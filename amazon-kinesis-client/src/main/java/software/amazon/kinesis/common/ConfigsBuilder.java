@@ -15,14 +15,21 @@
 
 package software.amazon.kinesis.common;
 
+import java.util.function.Function;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Accessors;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.utils.Either;
 import software.amazon.kinesis.checkpoint.CheckpointConfig;
 import software.amazon.kinesis.coordinator.CoordinatorConfig;
 import software.amazon.kinesis.leases.LeaseManagementConfig;
@@ -30,19 +37,32 @@ import software.amazon.kinesis.lifecycle.LifecycleConfig;
 import software.amazon.kinesis.metrics.MetricsConfig;
 import software.amazon.kinesis.processor.ProcessorConfig;
 import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
+import software.amazon.kinesis.processor.MultiStreamTracker;
+import software.amazon.kinesis.processor.SingleStreamTracker;
+import software.amazon.kinesis.processor.StreamTracker;
 import software.amazon.kinesis.retrieval.RetrievalConfig;
 
 /**
  * This Builder is useful to create all configurations for the KCL with default values.
  */
-@Data
+@Getter @Setter @ToString @EqualsAndHashCode
 @Accessors(fluent = true)
 public class ConfigsBuilder {
     /**
-     * Name of the stream to consume records from
+     * Either the name of the stream to consume records from
+     * Or MultiStreamTracker for all the streams to consume records from
+     *
+     * @deprecated Both single- and multi-stream support is now provided by {@link StreamTracker}.
+     * @see #streamTracker
      */
-    @NonNull
-    private final String streamName;
+    @Deprecated
+    private Either<MultiStreamTracker, String> appStreamTracker;
+
+    /**
+     * Stream(s) to be consumed by this KCL application.
+     */
+    private StreamTracker streamTracker;
+
     /**
      * Application name for the KCL Worker
      */
@@ -109,6 +129,91 @@ public class ConfigsBuilder {
     }
 
     /**
+     * Constructor to initialize ConfigsBuilder for a single stream identified by name.
+     *
+     * @param streamName
+     * @param applicationName
+     * @param kinesisClient
+     * @param dynamoDBClient
+     * @param cloudWatchClient
+     * @param workerIdentifier
+     * @param shardRecordProcessorFactory
+     */
+    public ConfigsBuilder(@NonNull String streamName, @NonNull String applicationName,
+            @NonNull KinesisAsyncClient kinesisClient, @NonNull DynamoDbAsyncClient dynamoDBClient,
+            @NonNull CloudWatchAsyncClient cloudWatchClient, @NonNull String workerIdentifier,
+            @NonNull ShardRecordProcessorFactory shardRecordProcessorFactory) {
+        this(new SingleStreamTracker(streamName),
+                applicationName,
+                kinesisClient,
+                dynamoDBClient,
+                cloudWatchClient,
+                workerIdentifier,
+                shardRecordProcessorFactory);
+    }
+
+    /**
+     * Constructor to initialize ConfigsBuilder for a single stream identified by {@link Arn}.
+     *
+     * @param streamArn
+     * @param applicationName
+     * @param kinesisClient
+     * @param dynamoDBClient
+     * @param cloudWatchClient
+     * @param workerIdentifier
+     * @param shardRecordProcessorFactory
+     */
+    public ConfigsBuilder(@NonNull Arn streamArn, @NonNull String applicationName,
+                          @NonNull KinesisAsyncClient kinesisClient, @NonNull DynamoDbAsyncClient dynamoDBClient,
+                          @NonNull CloudWatchAsyncClient cloudWatchClient, @NonNull String workerIdentifier,
+                          @NonNull ShardRecordProcessorFactory shardRecordProcessorFactory) {
+        this(new SingleStreamTracker(streamArn),
+                applicationName,
+                kinesisClient,
+                dynamoDBClient,
+                cloudWatchClient,
+                workerIdentifier,
+                shardRecordProcessorFactory);
+    }
+
+    /**
+     * Constructor to initialize ConfigsBuilder
+     *
+     * @param streamTracker tracker for single- or multi-stream processing
+     * @param applicationName
+     * @param kinesisClient
+     * @param dynamoDBClient
+     * @param cloudWatchClient
+     * @param workerIdentifier
+     * @param shardRecordProcessorFactory
+     */
+    public ConfigsBuilder(@NonNull StreamTracker streamTracker, @NonNull String applicationName,
+            @NonNull KinesisAsyncClient kinesisClient, @NonNull DynamoDbAsyncClient dynamoDBClient,
+            @NonNull CloudWatchAsyncClient cloudWatchClient, @NonNull String workerIdentifier,
+            @NonNull ShardRecordProcessorFactory shardRecordProcessorFactory) {
+        this.applicationName = applicationName;
+        this.kinesisClient = kinesisClient;
+        this.dynamoDBClient = dynamoDBClient;
+        this.cloudWatchClient = cloudWatchClient;
+        this.workerIdentifier = workerIdentifier;
+        this.shardRecordProcessorFactory = shardRecordProcessorFactory;
+
+        // construct both streamTracker and appStreamTracker
+        streamTracker(streamTracker);
+    }
+
+    public void appStreamTracker(Either<MultiStreamTracker, String> appStreamTracker) {
+        this.appStreamTracker = appStreamTracker;
+        streamTracker = appStreamTracker.map(Function.identity(), SingleStreamTracker::new);
+    }
+
+    public void streamTracker(StreamTracker streamTracker) {
+        this.streamTracker = streamTracker;
+        this.appStreamTracker = DeprecationUtils.convert(streamTracker,
+                singleStreamTracker -> singleStreamTracker.streamConfigList().get(0).streamIdentifier().streamName());
+    }
+
+    /**
      * Creates a new instance of CheckpointConfig
      *
      * @return CheckpointConfig
@@ -132,8 +237,7 @@ public class ConfigsBuilder {
      * @return LeaseManagementConfig
      */
     public LeaseManagementConfig leaseManagementConfig() {
-        return new LeaseManagementConfig(tableName(), dynamoDBClient(), kinesisClient(), streamName(),
-                workerIdentifier());
+        return new LeaseManagementConfig(tableName(), dynamoDBClient(), kinesisClient(), workerIdentifier());
     }
 
     /**
@@ -154,7 +258,6 @@ public class ConfigsBuilder {
         return new MetricsConfig(cloudWatchClient(), namespace());
     }
 
-
     /**
      * Creates a new instance of ProcessorConfig
      *
@@ -170,6 +273,6 @@ public class ConfigsBuilder {
      * @return RetrievalConfig
      */
     public RetrievalConfig retrievalConfig() {
-        return new RetrievalConfig(kinesisClient(), streamName(), applicationName());
+        return new RetrievalConfig(kinesisClient(), streamTracker(), applicationName());
     }
 }

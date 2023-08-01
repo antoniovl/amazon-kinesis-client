@@ -36,7 +36,7 @@ import software.amazon.kinesis.metrics.NullMetricsFactory;
 import software.amazon.kinesis.retrieval.kpl.ExtendedSequenceNumber;
 @RunWith(MockitoJUnitRunner.class)
 public class DynamoDBLeaseRenewerIntegrationTest extends LeaseIntegrationTest {
-    private final String TEST_METRIC = "TestOperation";
+    private static final String TEST_METRIC = "TestOperation";
 
     // This test case's leases last 2 seconds
     private static final long LEASE_DURATION_MILLIS = 2000L;
@@ -252,6 +252,21 @@ public class DynamoDBLeaseRenewerIntegrationTest extends LeaseIntegrationTest {
         final String shardId = "shd-0-0";
         final String owner = "foo:8000";
 
+        TestHarnessBuilder builder = new TestHarnessBuilder(leaseRefresher);
+        builder.withLease(shardId, owner);
+        Map<String, Lease> leases = builder.build();
+        DynamoDBLeaseRenewer renewer = new DynamoDBLeaseRenewer(leaseRefresher, owner, 30000L,
+                Executors.newCachedThreadPool(), new NullMetricsFactory());
+        renewer.initialize();
+        Map<String, Lease> heldLeases = renewer.getCurrentlyHeldLeases();
+        assertThat(heldLeases.size(), equalTo(leases.size()));
+        assertThat(heldLeases.keySet(), equalTo(leases.keySet()));
+    }
+
+    @Test
+    public void testInitializeBillingMode() throws LeasingException {
+        final String shardId = "shd-0-0";
+        final String owner = "foo:8000";
         TestHarnessBuilder builder = new TestHarnessBuilder(leaseRefresher);
         builder.withLease(shardId, owner);
         Map<String, Lease> leases = builder.build();

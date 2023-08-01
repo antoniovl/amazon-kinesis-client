@@ -21,8 +21,9 @@ import lombok.experimental.Accessors;
 import software.amazon.kinesis.annotations.KinesisClientInternalApi;
 import software.amazon.kinesis.checkpoint.ShardRecordProcessorCheckpointer;
 import software.amazon.kinesis.common.InitialPositionInStreamExtended;
+import software.amazon.kinesis.common.StreamIdentifier;
+import software.amazon.kinesis.leases.LeaseCleanupManager;
 import software.amazon.kinesis.leases.LeaseCoordinator;
-import software.amazon.kinesis.leases.LeaseRefresher;
 import software.amazon.kinesis.leases.ShardDetector;
 import software.amazon.kinesis.leases.ShardInfo;
 import software.amazon.kinesis.leases.HierarchicalShardSyncer;
@@ -31,6 +32,7 @@ import software.amazon.kinesis.processor.Checkpointer;
 import software.amazon.kinesis.processor.ShardRecordProcessor;
 import software.amazon.kinesis.retrieval.AggregatorUtil;
 import software.amazon.kinesis.retrieval.RecordsPublisher;
+import software.amazon.kinesis.schemaregistry.SchemaRegistryDecoder;
 
 import java.util.concurrent.ExecutorService;
 
@@ -41,7 +43,7 @@ public class ShardConsumerArgument {
     @NonNull
     private final ShardInfo shardInfo;
     @NonNull
-    private final String streamName;
+    private final StreamIdentifier streamIdentifier;
     @NonNull
     private final LeaseCoordinator leaseCoordinator;
     @NonNull
@@ -71,4 +73,6 @@ public class ShardConsumerArgument {
     private final HierarchicalShardSyncer hierarchicalShardSyncer;
     @NonNull
     private final MetricsFactory metricsFactory;
+    private final LeaseCleanupManager leaseCleanupManager;
+    private final SchemaRegistryDecoder schemaRegistryDecoder;
 }

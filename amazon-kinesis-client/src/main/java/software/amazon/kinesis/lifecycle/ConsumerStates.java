@@ -93,23 +93,10 @@ class ConsumerStates {
         }
     }
 
-
     /**
      * The initial state that any {@link ShardConsumer} should start in.
      */
     static final ConsumerState INITIAL_STATE = ShardConsumerState.WAITING_ON_PARENT_SHARDS.consumerState();
-
-    private static ConsumerState shutdownStateFor(ShutdownReason reason) {
-        switch (reason) {
-        case REQUESTED:
-            return ShardConsumerState.SHUTDOWN_REQUESTED.consumerState();
-        case SHARD_END:
-        case LEASE_LOST:
-            return ShardConsumerState.SHUTTING_DOWN.consumerState();
-        default:
-            throw new IllegalArgumentException("Unknown reason: " + reason);
-        }
-    }
 
     /**
      * This is the initial state of a shard consumer. This causes the consumer to remain blocked until the all parent
@@ -146,7 +133,7 @@ class ConsumerStates {
 
         @Override
         public ConsumerState shutdownTransition(ShutdownReason shutdownReason) {
-            return ShardConsumerState.SHUTDOWN_COMPLETE.consumerState();
+            return ShardConsumerState.SHUTTING_DOWN.consumerState();
         }
 
         @Override
@@ -269,7 +256,9 @@ class ConsumerStates {
                     input,
                     argument.shouldCallProcessRecordsEvenForEmptyRecordList(),
                     argument.idleTimeInMilliseconds(),
-                    argument.aggregatorUtil(), argument.metricsFactory()
+                    argument.aggregatorUtil(),
+                    argument.metricsFactory(),
+                    argument.schemaRegistryDecoder()
             );
         }
 
@@ -496,7 +485,10 @@ class ConsumerStates {
                     argument.taskBackoffTimeMillis(),
                     argument.recordsPublisher(),
                     argument.hierarchicalShardSyncer(),
-                    argument.metricsFactory());
+                    argument.metricsFactory(),
+                    input == null ? null : input.childShards(),
+                    argument.streamIdentifier(),
+                    argument.leaseCleanupManager());
         }
 
         @Override

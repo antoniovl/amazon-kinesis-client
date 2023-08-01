@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -72,6 +73,7 @@ public class TestHarnessBuilder {
         lease.leaseCounter(0L);
         lease.leaseOwner(owner);
         lease.parentShardIds(Collections.singleton("parentShardId"));
+        lease.childShardIds(new HashSet<>());
         lease.leaseKey(shardId);
 
         return lease;
@@ -103,6 +105,23 @@ public class TestHarnessBuilder {
             Lease original = leases.get(actual.leaseKey());
             assertNotNull(original);
 
+            mutateAssert(taker.getWorkerIdentifier(), original, actual);
+        }
+
+        return result;
+    }
+
+    public Map<String, Lease> stealMutateAssert(DynamoDBLeaseTaker taker, int numToTake)
+            throws LeasingException {
+        Map<String, Lease> result = taker.takeLeases(timeProvider);
+        assertEquals(numToTake, result.size());
+
+        for (Lease actual : result.values()) {
+            Lease original = leases.get(actual.leaseKey());
+            assertNotNull(original);
+
+            original.isMarkedForLeaseSteal(true)
+                    .lastCounterIncrementNanos(actual.lastCounterIncrementNanos());
             mutateAssert(taker.getWorkerIdentifier(), original, actual);
         }
 

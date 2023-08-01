@@ -1,5 +1,285 @@
 # Changelog
 
+For **1.x** release notes, please see [v1.x/CHANGELOG.md](https://github.com/awslabs/amazon-kinesis-client/blob/v1.x/CHANGELOG.md)
+
+---
+### Release 2.5.1 (June 27, 2023)
+* [#1143](https://github.com/awslabs/amazon-kinesis-client/pull/1143) Upgrade MultiLangDaemon to support StreamARN
+* [#1145](https://github.com/awslabs/amazon-kinesis-client/pull/1145) Introduced GitHub actions to trigger Maven builds during merge/pull requests
+* [#1136](https://github.com/awslabs/amazon-kinesis-client/pull/1136) Added testing architecture and KCL 2.x basic polling/streaming tests
+* [#1153](https://github.com/awslabs/amazon-kinesis-client/pull/1153) Checkstyle: added `UnusedImports` check.
+* [#1150](https://github.com/awslabs/amazon-kinesis-client/pull/1150) Enabled Checkstyle validation of test resources.
+* [#1149](https://github.com/awslabs/amazon-kinesis-client/pull/1149) Bound Checkstyle to `validate` goal for automated enforcement.
+* [#1148](https://github.com/awslabs/amazon-kinesis-client/pull/1148) Code cleanup to faciliate Checkstyle enforcement.
+* [#1142](https://github.com/awslabs/amazon-kinesis-client/pull/1142) Upgrade Google Guava dependency version from 31.1-jre to 32.0.0-jre
+* [#1115](https://github.com/awslabs/amazon-kinesis-client/pull/1115) Update KCL version from 2.5.0 to 2.5.1-SNAPSHOT
+
+### Release 2.5.0 (May 19, 2023)
+* **[#1109](https://github.com/awslabs/amazon-kinesis-client/pull/1109) Add support for stream ARNs**
+* **[#1065](https://github.com/awslabs/amazon-kinesis-client/pull/1065) Allow tags to be added when lease table is created**
+* [#1094](https://github.com/awslabs/amazon-kinesis-client/pull/1094) Code cleanup to introduce better testing
+* [#1088](https://github.com/awslabs/amazon-kinesis-client/pull/1088) Minimize race in PSSM to optimize shard sync calls
+* [#1086](https://github.com/awslabs/amazon-kinesis-client/pull/1086) Add additional SingleStreamTracker constructor with stream position parameter
+* [#1084](https://github.com/awslabs/amazon-kinesis-client/pull/1084) More consistent testing behavior with restartAfterRequestTimerExpires
+* [#1066](https://github.com/awslabs/amazon-kinesis-client/pull/1066) More consistent testing behavior with HashRangesAreAlwaysComplete
+* [#1072](https://github.com/awslabs/amazon-kinesis-client/pull/1072) Upgrade nexus-staging-maven-plugin from 1.6.8 to 1.6.13
+* [#1073](https://github.com/awslabs/amazon-kinesis-client/pull/1073) Upgrade slf4j-api from 2.0.6 to 2.0.7
+* [#1090](https://github.com/awslabs/amazon-kinesis-client/pull/1090) Upgrade awssdk.version from 2.20.8 to 2.20.43
+* [#1071](https://github.com/awslabs/amazon-kinesis-client/pull/1071) Upgrade maven-compiler-plugin from 3.8.1 to 3.11.0
+
+### Release 2.4.8 (March 21, 2023)
+* [#1080](https://github.com/awslabs/amazon-kinesis-client/pull/1080) Added metric in `ShutdownTask` for scenario when parent leases are missing.
+* [#1077](https://github.com/awslabs/amazon-kinesis-client/pull/1077) Reverted changes to pom property
+* [#1069](https://github.com/awslabs/amazon-kinesis-client/pull/1069) Fixed flaky InitializationWaitsWhenLeaseTableIsEmpty test
+
+
+### Release 2.4.7 (March 17, 2023)
+* **NOTE: Due to an issue during the release process, the 2.4.7 published artifacts are incomplete and non-viable. Please use 2.4.8 or later.**
+* [#1063](https://github.com/awslabs/amazon-kinesis-client/pull/1063) Allow leader to learn new leases upon re-election to avoid unnecessary shardSyncs
+* [#1060](https://github.com/awslabs/amazon-kinesis-client/pull/1060) Add new metric to be emitted on lease creation
+* [#1057](https://github.com/awslabs/amazon-kinesis-client/pull/1057) Added more logging in `Scheduler` w.r.t. `StreamConfig`s.
+* [#1059](https://github.com/awslabs/amazon-kinesis-client/pull/1059) DRY: simplification of `HierarchicalShardSyncerTest`.
+* [#1062](https://github.com/awslabs/amazon-kinesis-client/pull/1062) Fixed retry storm in `PrefetchRecordsPublisher`.
+* [#1061](https://github.com/awslabs/amazon-kinesis-client/pull/1061) Fixed NPE in `LeaseCleanupManager`.
+* [#1056](https://github.com/awslabs/amazon-kinesis-client/pull/1056) Clean up in-memory state of deleted kinesis stream in MultiStreamMode
+* [#1058](https://github.com/awslabs/amazon-kinesis-client/pull/1058) Documentation: added `<pre>` tags so fixed-format diagrams aren't garbled.
+* [#1053](https://github.com/awslabs/amazon-kinesis-client/pull/1053) Exposed convenience method of `ExtendedSequenceNumber#isSentinelCheckpoint()`
+* [#1043](https://github.com/awslabs/amazon-kinesis-client/pull/1043) Removed a `.swp` file, and updated `.gitignore`.
+* [#1047](https://github.com/awslabs/amazon-kinesis-client/pull/1047) Upgrade awssdk.version from 2.19.31 to 2.20.8
+* [#1046](https://github.com/awslabs/amazon-kinesis-client/pull/1046) Upgrade maven-javadoc-plugin from 3.3.1 to 3.5.0
+* [#1038](https://github.com/awslabs/amazon-kinesis-client/pull/1038) Upgrade gsr.version from 1.1.13 to 1.1.14
+* [#1037](https://github.com/awslabs/amazon-kinesis-client/pull/1037) Upgrade aws-java-sdk.version from 1.12.370 to 1.12.405
+
+### Release 2.4.6 (February 21, 2023)
+* [#1041](https://github.com/awslabs/amazon-kinesis-client/pull/1041) Minor optimizations (e.g., calculate-once, put instead of get+put)
+* [#1035](https://github.com/awslabs/amazon-kinesis-client/pull/1035) Release Note updates to avoid duplication and bitrot (e.g., 1.x release
+* [#935](https://github.com/awslabs/amazon-kinesis-client/pull/935) Pass isAtShardEnd correctly to processRecords call
+* [#1040](https://github.com/awslabs/amazon-kinesis-client/pull/1040) Increased logging verbosity around lease management
+* [#1024](https://github.com/awslabs/amazon-kinesis-client/pull/1024) Added logging w.r.t. StreamConfig handling.
+* [#1034](https://github.com/awslabs/amazon-kinesis-client/pull/1034) Optimization: 9~15% improvement in KinesisDataFetcher wall-time
+* [#1045](https://github.com/awslabs/amazon-kinesis-client/pull/1045) Fixed duplication of project version in children pom.xml
+* [#956](https://github.com/awslabs/amazon-kinesis-client/pull/956) Fixed warning message typos
+* [#795](https://github.com/awslabs/amazon-kinesis-client/pull/795) Fixed log message spacing
+* [#740](https://github.com/awslabs/amazon-kinesis-client/pull/740) Fixed typo in Comment
+* [#1028](https://github.com/awslabs/amazon-kinesis-client/pull/1028) Refactored MultiStreamTracker to provide and enhance OOP for both
+* [#1027](https://github.com/awslabs/amazon-kinesis-client/pull/1027) Removed CHECKSTYLE:OFF toggles which can invite/obscure sub-par code.
+* [#1032](https://github.com/awslabs/amazon-kinesis-client/pull/1032) Upgrade rxjava from 3.1.5 to 3.1.6
+* [#1030](https://github.com/awslabs/amazon-kinesis-client/pull/1030) Upgrade awssdk.version from 2.19.2 to 2.19.31
+* [#1029](https://github.com/awslabs/amazon-kinesis-client/pull/1029) Upgrade slf4j-api from 2.0.0 to 2.0.6
+* [#1015](https://github.com/awslabs/amazon-kinesis-client/pull/1015) Upgrade protobuf-java from 3.21.5 to 3.21.12
+
+### Release 2.4.5 (January 04, 2023)
+* [#1014](https://github.com/awslabs/amazon-kinesis-client/pull/1014) Use AFTER_SEQUENCE_NUMBER iterator type for expired iterator request
+
+### Release 2.4.4 (December 23, 2022)
+* [#1017](https://github.com/awslabs/amazon-kinesis-client/pull/1017) Upgrade aws sdk 
+  * aws-java-sdk.version from 1.12.296 -> 1.12.370
+  * awssdk.version from 2.17.268 -> 2.19.2
+* [#1020](https://github.com/awslabs/amazon-kinesis-client/pull/1020)  Correct the KCL version in the main pom
+
+### Release 2.4.3 (September 6, 2022)
+* [#980](https://github.com/awslabs/amazon-kinesis-client/pull/980) logback-classic: 1.2.9 -> 1.4.0
+* [#983](https://github.com/awslabs/amazon-kinesis-client/pull/983)
+  * protobuf-java: 3.19.2 -> 3.21.5
+  * slf4j.version: 1.7.32 -> 2.0.0
+  * schema-registry-serde: 1.1.9 -> 1.1.13
+* [#984](https://github.com/awslabs/amazon-kinesis-client/pull/984) awssdk.version from 2.17.108 to 2.17.267
+* [#987](https://github.com/awslabs/amazon-kinesis-client/pull/987) guava: 31.0.1-jre -> 31.1-jre
+* [#988](https://github.com/awslabs/amazon-kinesis-client/pull/988) jcommander: 1.81 to 1.82
+* [#990](https://github.com/awslabs/amazon-kinesis-client/pull/990)  Upgrade dependencies
+  * aws-java-sdk.version: 1.12.130 -> 1.12.296
+  * lombok: 1.18.22 -> 1.18.24
+  * rxjava: 3.1.3 -> 3.1.5
+  * maven-resources-plugin: 2.6 -> 3.3.0
+  * logback-classic: 1.4.0 -> 1.3.0
+  * awssdk.version: 2.17.267 -> 2.17.268
+
+### Release 2.4.2 (August 10, 2022)
+* [#972](https://github.com/awslabs/amazon-kinesis-client/pull/972) Upgrade Lombok to version 1.18.24
+
+### Latest Release 2.4.1 (March 24, 2022)
+[Milestone#68](https://github.com/awslabs/amazon-kinesis-client/milestone/68)
+* [#916](https://github.com/awslabs/amazon-kinesis-client/pull/916) Upgrade to rxjava3
+
+### Release 2.4.0 (March 2, 2022)
+[Milestone#67](https://github.com/awslabs/amazon-kinesis-client/milestone/67)
+* [#894](https://github.com/awslabs/amazon-kinesis-client/pull/894) Bump protobuf-java from 3.19.1 to 3.19.2
+* [#924](https://github.com/awslabs/amazon-kinesis-client/pull/924) Support Protobuf Data format with Glue Schema Registry.
+
+### Latest Release 2.3.10 (January 4, 2022)
+[Milestone#66](https://github.com/awslabs/amazon-kinesis-client/milestone/66)
+* [#868](https://github.com/awslabs/amazon-kinesis-client/pull/868) Adding a new metric: Application-level MillisBehindLatest
+* [#879](https://github.com/awslabs/amazon-kinesis-client/pull/879) Keep dependencies up-to-date
+* [#886](https://github.com/awslabs/amazon-kinesis-client/pull/886) Get latest counter before attempting a take to ensure take succeeds
+* [#888](https://github.com/awslabs/amazon-kinesis-client/pull/888) Configure dependabot for v1.x branch
+
+### Release 2.3.9 (November 22, 2021)
+[Milestone#65](https://github.com/awslabs/amazon-kinesis-client/milestone/65)
+* [#866](https://github.com/awslabs/amazon-kinesis-client/pull/866) Update logback dependency.
+
+### Release 2.3.8 (October 27, 2021)
+[Milestone#64](https://github.com/awslabs/amazon-kinesis-client/milestone/64)
+* [#860](https://github.com/awslabs/amazon-kinesis-client/pull/860) Upgrade Glue schema registry from 1.1.4 to 1.1.5.
+* [#861](https://github.com/awslabs/amazon-kinesis-client/pull/861) Revert [PR#847](https://github.com/awslabs/amazon-kinesis-client/pull/847) due to regression for leases without owners and added new tests.
+
+### Release 2.3.7 (October 11, 2021)
+[Milestone#63](https://github.com/awslabs/amazon-kinesis-client/milestone/63)
+* [#842](https://github.com/awslabs/amazon-kinesis-client/pull/842) Fixing typo is debug logs.
+* [#846](https://github.com/awslabs/amazon-kinesis-client/pull/846) Fix DynamoDBLeaseTaker logging of available leases
+* [#847](https://github.com/awslabs/amazon-kinesis-client/pull/847) Make use of Java 8 to simplify computeLeaseCounts()
+* [#853](https://github.com/awslabs/amazon-kinesis-client/pull/853) Add configurable initial position for orphaned stream
+* [#854](https://github.com/awslabs/amazon-kinesis-client/pull/854) Create DynamoDB tables on On-Demand billing mode by default.
+* [#855](https://github.com/awslabs/amazon-kinesis-client/pull/855) Emit Glue Schema Registry usage metrics
+* [#857](https://github.com/awslabs/amazon-kinesis-client/pull/857) Fix to shutdown PrefetchRecordsPublisher in gracefull manner
+* [#858](https://github.com/awslabs/amazon-kinesis-client/pull/858) Upgrade AWS SDK version to 2.17.52.
+
+### Release 2.3.6 (July 9, 2021)
+[Milestone#62](https://github.com/awslabs/amazon-kinesis-client/milestone/62)
+* [#836](https://github.com/awslabs/amazon-kinesis-client/pull/836) Upgraded AWS SDK version to 2.16.98
+* [#835](https://github.com/awslabs/amazon-kinesis-client/pull/835) Upgraded Glue Schema Registry version to 1.1.1
+* [#828](https://github.com/awslabs/amazon-kinesis-client/pull/828) Modified wildcard imports to individual imports.
+* [#817](https://github.com/awslabs/amazon-kinesis-client/pull/817) Updated the Worker shutdown logic to make sure that the `LeaseCleanupManager` also terminates all the threads that it has started.
+* [#794](https://github.com/awslabs/amazon-kinesis-client/pull/794) Silence warning when there are no stale streams to delete.
+
+### Release 2.3.5 (June 14, 2021)
+[Milestone#59](https://github.com/awslabs/amazon-kinesis-client/milestone/59)
+* [#824](https://github.com/awslabs/amazon-kinesis-client/pull/824) Upgraded dependencies
+  * logback-classic version to 1.2.3
+  * AWS Java SDK version to 1.12.3
+  * AWS SDK version to 2.16.81
+* [#815](https://github.com/awslabs/amazon-kinesis-client/pull/815) Converted Future to CompletableFuture which helps in proper conversion to Scala using Scala Future Converters.
+* [#810](https://github.com/awslabs/amazon-kinesis-client/pull/810) Bump commons-io from 2.6 to 2.7
+* [#804](https://github.com/awslabs/amazon-kinesis-client/pull/804) Allowing user to specify an initial timestamp in which daemon will process records.
+* [#802](https://github.com/awslabs/amazon-kinesis-client/pull/802) Upgraded guava from 26.0-jre to 29.0-jre
+* [#801](https://github.com/awslabs/amazon-kinesis-client/pull/801) Fixing a bug that causes to block indefinitely when trying to unlock a lock that isn't locked.
+* [#762](https://github.com/awslabs/amazon-kinesis-client/pull/762) Added support for web identity token in multilang
+
+### Release 2.3.4 (February 19, 2021)
+[Milestone#56](https://github.com/awslabs/amazon-kinesis-client/milestone/56)
+* [#788](https://github.com/awslabs/amazon-kinesis-client/pull/788) Fixing a bug that caused paginated `ListShards` calls with the `ShardFilter` parameter to fail when the lease table was being initialized.
+
+### Release 2.3.3 (December 23, 2020)
+[Milestone#55](https://github.com/awslabs/amazon-kinesis-client/milestone/55)
+* Fixing bug in PrefetchRecordsPublisher which was causing retry storms if initial request fails.
+* Fixing bug where idleTimeBetweenReadsInMillis property was ignored in PollingConfig.
+
+### Release 2.3.2 (November 19, 2020)
+[Milestone#54](https://github.com/awslabs/amazon-kinesis-client/milestone/54)
+* Adding support for Glue Schema Registry. Deserialize and read schemas associated with the records.
+* Updating AWS SDK version to 2.15.31
+
+
+### Release 2.3.1 (October 20, 2020)
+[Milestone#53](https://github.com/awslabs/amazon-kinesis-client/milestone/53)
+* Introducing support for processing multiple kinesis data streams with the same KCL 2.x for java consumer application
+  * To build a consumer application that can process multiple streams at the same time, you must implement a new
+  interface called MultistreamTracker (https://github.com/awslabs/amazon-kinesis-client/blob/0c5042dadf794fe988438436252a5a8fe70b6b0b/amazon-kinesis-client/src/main/java/software/amazon/kinesis/processor/MultiStreamTracker.java)
+
+  * MultistreamTracker will also publish various metrics around the current active streams being processed, the number
+   of streams which are deleted at this time period or are pending deletion.
+
+
+### Release 2.3.0 (August 17, 2020)
+* [Milestone#52](https://github.com/awslabs/amazon-kinesis-client/milestones/52)
+
+* Behavior of shard synchronization is moving from each worker independently learning about all existing shards to workers only discovering the children of shards that each worker owns. This optimizes memory usage, lease table IOPS usage, and number of calls made to kinesis for streams with high shard counts and/or frequent resharding.
+* When bootstrapping an empty lease table, KCL utilizes the `ListShard` API's filtering option (the ShardFilter optional request parameter) to retrieve and create leases only for a snapshot of shards open at the time specified by the `ShardFilter` parameter. The `ShardFilter` parameter enables you to filter out the response of the `ListShards` API, using the `Type` parameter. KCL uses the `Type` filter parameter and the following of its valid values to identify and return a snapshot of open shards that might require new leases.
+	* Currently, the following shard filters are supported:
+		* `AT_TRIM_HORIZON` - the response includes all the shards that were open at `TRIM_HORIZON`.
+		* `AT_LATEST` - the response includes only the currently open shards of the data stream.
+	    * `AT_TIMESTAMP` - the response includes all shards whose start timestamp is less than or equal to the given timestamp and end timestamp is greater than or equal to the given timestamp or still open.
+	* `ShardFilter` is used when creating leases for an empty lease table to initialize leases for a snapshot of shards specified at `RetrievalConfig#initialPositionInStreamExtended`.
+	* For more information about ShardFilter, see the [official AWS documentation on ShardFilter](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_ShardFilter.html).
+
+* Introducing support for the `ChildShards` response of the `GetRecords` and the `SubscribeToShard` APIs to perform lease/shard synchronization that happens at `SHARD_END` for closed shards, allowing a KCL worker to only create leases for the child shards of the shard it finished processing.
+	* For shared throughout consumer applications, this uses the `ChildShards` response of the `GetRecords` API. For dedicated throughput (enhanced fan-out) consumer applications, this uses the `ChildShards` response of the `SubscribeToShard` API.
+	* For more information, see the official AWS Documentation on [GetRecords](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetRecords.html), [SubscribeToShard](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_SubscribeToShard.html), and [ChildShard](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_ChildShard.html).
+
+* KCL now also performs additional periodic shard/lease scans in order to identify any potential holes in the lease table to ensure the complete hash range of the stream is being processed and create leases for them if required. `PeriodicShardSyncManager` is the new component that is responsible for running periodic lease/shard scans.
+	* New configuration options are available to configure `PeriodicShardSyncManager` in `LeaseManagementConfig`
+
+	| Name                                                  | Default            | Description                                                                                                                                                                                                                                                   |
+	| ----------------------------------------------------- | -----------------  | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+	| leasesRecoveryAuditorExecutionFrequencyMillis         | 120000 (2 minutes) | Frequency (in millis) of the auditor job to scan for partial leases in the lease table. If the auditor detects any hole in the leases for a stream, then it would trigger shard sync based on leasesRecoveryAuditorInconsistencyConfidenceThreshold.          |
+	| leasesRecoveryAuditorInconsistencyConfidenceThreshold | 3                  | Confidence threshold for the periodic auditor job to determine if leases for a stream in the lease table is inconsistent. If the auditor finds same set of inconsistencies consecutively for a stream for this many times, then it would trigger a shard sync |
+
+	* New CloudWatch metrics are also now emitted to monitor the health of `PeriodicShardSyncManager`:
+
+	| Name                        | Description                                            |
+	| --------------------------- | ------------------------------------------------------ |
+	| NumStreamsWithPartialLeases | Number of streams that had holes in their hash ranges. |
+	| NumStreamsToSync            | Number of streams which underwent a full shard sync.   |
+
+* Introducing deferred lease cleanup. Leases will be deleted asynchronously by `LeaseCleanupManager` upon reaching `SHARD_END`, when a shard has either expired past the stream’s retention period or been closed as the result of a resharding operation.
+	* New configuration options are available to configure `LeaseCleanupManager`.
+
+	| Name                                | Default    | Description                                                                                               |
+	| ----------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+	| leaseCleanupIntervalMillis          | 1 minute   | Interval at which to run lease cleanup thread.                                                            |
+	| completedLeaseCleanupIntervalMillis | 5 minutes  | Interval at which to check if a lease is completed or not.                                                |
+	| garbageLeaseCleanupIntervalMillis   | 30 minutes | Interval at which to check if a lease is garbage (i.e trimmed past the stream's retention period) or not. |
+
+* Introducing _experimental_ support for multistreaming, allowing a single KCL application to multiplex processing multiple streams.
+	* New configuration options are available to enable multistreaming in `RetrievalConfig#appStreamTracker`.
+
+* Fixing a bug in `PrefetchRecordsPublisher` restarting while it was already running.
+* Including an optimization to `HierarchicalShardSyncer` to only create leases for one layer of shards.
+* Adding support to prepare and commit lease checkpoints with arbitrary bytes.
+	* This allows checkpointing of an arbitrary byte buffer up to the maximum permitted DynamoDB item size ([currently 400 KB as of release](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)), and can be used for recovery by passing a serialized byte buffer to `RecordProcessorCheckpointer#prepareCheckpoint` and `RecordProcessorCheckpointer#checkpoint`.
+* Upgrading version of AWS SDK to 2.14.0.
+* [#725](https://github.com/awslabs/amazon-kinesis-client/pull/725) Allowing KCL to consider lease tables in `UPDATING` healthy.
+
+### Release 2.2.11 (May 28, 2020)
+[Milestone#51](https://github.com/awslabs/amazon-kinesis-client/milestone/51)
+* Adjusting HTTP2 initial window size to 512 KB
+  * [PR#706](https://github.com/awslabs/amazon-kinesis-client/pull/706)
+* Updating protobuf-java to version 3.11.4
+  * [PR#718](https://github.com/awslabs/amazon-kinesis-client/pull/718)
+* Updating the AWS Java SDK to version 2.13.25
+  * [PR#722](https://github.com/awslabs/amazon-kinesis-client/pull/722)
+  
+### Release 2.2.10 (March 26, 2020)
+[Milestone#48](https://github.com/awslabs/amazon-kinesis-client/milestone/48)
+* Fixing a bug in DynamoDB billing mode support for special regions.
+  * [PR#703](https://github.com/awslabs/amazon-kinesis-client/pull/703)
+* Adding request id logging to ShardConsumerSubscriber.
+  * [PR#705](https://github.com/awslabs/amazon-kinesis-client/pull/705)
+
+### Release 2.2.9 (Febuary 17, 2020)
+[Milestone#47](https://github.com/awslabs/amazon-kinesis-client/milestone/47)
+* Updating the AWS SDK version to 2.10.66.
+  * [PR#687](https://github.com/awslabs/amazon-kinesis-client/commit/8aaf2aa11c43f77f459732cdb7d88f4418d367ff)
+* Adding request id logging to SubscribeToShard response.
+  * [PR#678](https://github.com/awslabs/amazon-kinesis-client/pull/678)
+
+### Release 2.2.8 (January 28, 2020)
+[Milestone#46](https://github.com/awslabs/amazon-kinesis-client/milestone/45)
+* Updating the AWS SDK version to 2.10.56.
+  * [PR#679](https://github.com/awslabs/amazon-kinesis-client/pull/679)
+  * NOTE: SDK has a known connection teardown issue when multiple H2 streams are used within a connection. This might result in shard consumers sticking to a stale service host and not progressing. If your shard consumer gets stuck, use the following configuration as a workaround. This configuration might result in up to 5X increase in total connections.
+  ```
+  KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
+                                                       .region(region)
+                                                       .httpClientBuilder(NettyNioAsyncHttpClient.builder().maxConcurrency(Integer.MAX_VALUE).http2Configuration(Http2Configuration.builder().maxStreams(1).build())
+                                                       .build()
+  ```
+* Making ShardConsumerTest resilient to race conditions.
+  * [PR#668](https://github.com/awslabs/amazon-kinesis-client/pull/668)
+* Updating integration test naming.
+  * [PR#667](https://github.com/awslabs/amazon-kinesis-client/pull/667)
+
+### Release 2.2.7 (December 2, 2019)
+[Milestone#45](https://github.com/awslabs/amazon-kinesis-client/milestone/45)
+* Updating the AWS SDK version to 2.10.25
+  * [PR#657](https://github.com/awslabs/amazon-kinesis-client/pull/657)
+* Adding a configurable DynamoDB billing mode
+  * [PR#582](https://github.com/awslabs/amazon-kinesis-client/pull/582)
+  * NOTE: Billing mode is not available in all regions; if your lease table cannot be created, use the following configuration as a workaround:
+  ```
+  LeaseManagementConfig leaseManagementConfig = builder.leaseManagementConfig().billingMode(null).build();
+  ```
+
+
 ### Release 2.2.6 (November 7, 2019)
 [Milestone#43](https://github.com/awslabs/amazon-kinesis-client/milestone/43)
 * Updating the SDK version to 2.9.25.
@@ -268,297 +548,6 @@ Suppression can be configured by setting `LifecycleConfig#readTimeoutsToIgnoreBe
     
 * MultiLangDaemon is now a separate module  
   The MultiLangDaemon has been separated to its own Maven module and is no longer available in `amazon-kinesis-client`.  To include the MultiLangDaemon, add a dependency on `amazon-kinesis-client-multilang`.
-
-## Release 1.9.1 (April 30, 2018)
-* Added the ability to create a prepared checkpoint when at `SHARD_END`.
-  * [PR #301](https://github.com/awslabs/amazon-kinesis-client/pull/301)
-* Added the ability to subscribe to worker state change events.  
-  * [PR #291](https://github.com/awslabs/amazon-kinesis-client/pull/291)
-* Added support for custom lease managers.  
-  A custom `LeaseManager` can be provided to `Worker.Builder` that will be used to provide lease services. 
-  This makes it possible to implement custom lease management systems in addition to the default DynamoDB system.  
-  * [PR #297](https://github.com/awslabs/amazon-kinesis-client/pull/297)
-* Updated the version of the AWS Java SDK to 1.11.219
-
-## Release 1.9.0 (February 6, 2018)
-* Introducing support for ListShards API. This API is used in place of DescribeStream API to provide more throughput during ShardSyncTask. Please consult the [AWS Documentation for ListShards](https://docs.aws.amazon.com/kinesis/latest/APIReference/API_ListShards.html) for more information.
-  * ListShards supports higher call rate, which should reduce instances of throttling when attempting to synchronize the shard list.
-  * __WARNING: `ListShards` is a new API, and may require updating any explicit IAM policies__
-  * Added configuration parameters for ListShards usage
-  
-  | Name | Default | Description |
-  | ---- | ------- | ----------- |
-  | [listShardsBackoffTimeInMillis](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1412) | 1500 ms | This is the default backoff time between 2 ListShards calls when throttled. |
-  | [listShardsRetryAttempts](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1423) | 50 | This is the maximum number of times the KinesisProxy will retry to make ListShards calls on being throttled. |
-  
-* Updating the version of AWS Java SDK to 1.11.272.
-  * Version 1.11.272 is now the minimum support version of the SDK.
-* Deprecating the following methods, and classes. These methods, and classes will be removed in a future release.
-  * Deprecated [IKinesisProxy#getStreamInfo](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/proxies/IKinesisProxy.java#L48-L62).
-  * Deprecated [IKinesisProxyFactory](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/proxies/IKinesisProxyFactory.java).
-  * Deprecated [KinesisProxyFactory](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/proxies/KinesisProxyFactory.java).
-  * Deprecated certain [KinesisProxy](https://github.com/awslabs/amazon-kinesis-client/blob/3ae916c5fcdccd6b835c86ba7f6f53dd5b4c8b04/src/main/java/com/amazonaws/services/kinesis/clientlibrary/proxies/KinesisProxy.java) constructors.
-    * [PR #293](https://github.com/awslabs/amazon-kinesis-client/pull/293)
-
-## Release 1.8.10
-* Allow providing a custom IKinesisProxy implementation.
-  * [PR #274](https://github.com/awslabs/amazon-kinesis-client/pull/274)
-* Checkpointing on a different thread should no longer emit a warning about NullMetricsScope.
-  * [PR #284](https://github.com/awslabs/amazon-kinesis-client/pull/284)
-  * [Issue #48](https://github.com/awslabs/amazon-kinesis-client/issues/48)
-* Upgraded the AWS Java SDK to version 1.11.271
-  * [PR #287](https://github.com/awslabs/amazon-kinesis-client/pull/287)
-
-## Release 1.8.9
-* Allow disabling check for the case where a child shard has an open parent shard.  
-  There is a race condition where it's possible for the a parent shard to appear open, while having child shards. This check can now be disabled by setting [`ignoreUnexpectedChildShards`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1037) to true.
-  * [PR #240](https://github.com/awslabs/amazon-kinesis-client/pull/240)
-  * [Issue #210](https://github.com/awslabs/amazon-kinesis-client/issues/210)
-* Upgraded the AWS SDK for Java to 1.11.261
-  * [PR #281](https://github.com/awslabs/amazon-kinesis-client/pull/281)
-
-## Release 1.8.8
-* Fixed issues with leases losses due to `ExpiredIteratorException` in `PrefetchGetRecordsCache` and `AsynchronousFetchingStrategy`.  
-  PrefetchGetRecordsCache will request for a new iterator and start fetching data again.  
-  * [PR#263](https://github.com/awslabs/amazon-kinesis-client/pull/263)
-* Added warning message for long running tasks.  
-  Logging long running tasks can be enabled by setting the following configuration property:
-  
-  | Name | Default | Description |
-  | ---- | ------- | ----------- |
-  | [`logWarningForTaskAfterMillis`](https://github.com/awslabs/amazon-kinesis-client/blob/3de901ea9327370ed732af86c4d4999c8d99541c/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1367) | Not set | Milliseconds after which the logger will log a warning message for the long running task |
-  
-  * [PR#259](https://github.com/awslabs/amazon-kinesis-client/pull/259)
-* Handling spurious lease renewal failures gracefully.  
-  Added better handling of DynamoDB failures when updating leases.  These failures would occur when a request to DynamoDB appeared to fail, but was actually successful.  
-  * [PR#247](https://github.com/awslabs/amazon-kinesis-client/pull/247)
-* ShutdownTask gets retried if the previous attempt on the ShutdownTask fails.
-  * [PR#267](https://github.com/awslabs/amazon-kinesis-client/pull/267)
-* Fix for using maxRecords from `KinesisClientLibConfiguration` in `GetRecordsCache` for fetching records.
-  * [PR#264](https://github.com/awslabs/amazon-kinesis-client/pull/264)
-
-## Release 1.8.7
-* Don't add a delay for synchronous requests to Kinesis  
-  Removes a delay that had been added for synchronous `GetRecords` calls to Kinesis. 
-  * [PR #256](https://github.com/awslabs/amazon-kinesis-client/pull/256)
-
-## Release 1.8.6
-* Add prefetching of records from Kinesis  
-  Prefetching will retrieve and queue additional records from Kinesis while the application is processing existing records.  
-  Prefetching can be enabled by setting [`dataFetchingStrategy`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1317) to `PREFETCH_CACHED`. Once enabled an additional fetching thread will be started to retrieve records from Kinesis. Retrieved records will be held in a queue until the application is ready to process them.  
-  Pre-fetching supports the following configuration values:  
-  
-  | Name | Default | Description |
-  | ---- | ------- | ----------- |
-  | [`dataFetchingStrategy`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1317) | `DEFAULT` | Which data fetching strategy to use |
-  | [`maxPendingProcessRecordsInput`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1296) | 3 | The maximum number of process records input that can be queued |
-  | [`maxCacheByteSize`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1307) | 8 MiB | The maximum number of bytes that can be queued |
-  | [`maxRecordsCount`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1326) | 30,000 | The maximum number of records that can be queued |
-  | [`idleMillisBetweenCalls`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L1353) | 1,500 ms | The amount of time to wait between calls to Kinesis |
-  
-  * [PR #246](https://github.com/awslabs/amazon-kinesis-client/pull/246)
-
-## Release 1.8.5 (September 26, 2017)
-* Only advance the shard iterator for the accepted response.  
-  This fixes a race condition in the `KinesisDataFetcher` when it's being used to make asynchronous requests.  The shard iterator is now only advanced when the retriever calls `DataFetcherResult#accept()`.
-  * [PR #230](https://github.com/awslabs/amazon-kinesis-client/pull/230)
-  * [Issue #231](https://github.com/awslabs/amazon-kinesis-client/issues/231)
-
-## Release 1.8.4 (September 22, 2017)
-* Create a new completion service for each request.  
-  This ensures that canceled tasks are discarded.  This will prevent a cancellation exception causing issues processing records.
-  * [PR #227](https://github.com/awslabs/amazon-kinesis-client/pull/227)
-  * [Issue #226](https://github.com/awslabs/amazon-kinesis-client/issues/226)
-
-## Release 1.8.3 (September 22, 2017)
-* Call shutdown on the retriever when the record processor is being shutdown  
-  This fixes a bug that could leak threads if using the [`AsynchronousGetRecordsRetrievalStrategy`](https://github.com/awslabs/amazon-kinesis-client/blob/9a82b6bd05b3c9c5f8581af007141fa6d5f0fc4e/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/AsynchronousGetRecordsRetrievalStrategy.java#L42) is being used.  
-  The asynchronous retriever is only used when [`KinesisClientLibConfiguration#retryGetRecordsInSeconds`](https://github.com/awslabs/amazon-kinesis-client/blob/01d2688bc6e68fd3fe5cb698cb65299d67ac930d/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L227), and [`KinesisClientLibConfiguration#maxGetRecordsThreadPool`](https://github.com/awslabs/amazon-kinesis-client/blob/01d2688bc6e68fd3fe5cb698cb65299d67ac930d/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/KinesisClientLibConfiguration.java#L230) are set.
-  * [PR #222](https://github.com/awslabs/amazon-kinesis-client/pull/222)
-
-## Release 1.8.2 (September 20, 2017)
-* Add support for two phase checkpoints  
-  Applications can now set a pending checkpoint, before completing the checkpoint operation. Once the application has completed its checkpoint steps, the final checkpoint will clear the pending checkpoint.  
-  Should the checkpoint fail the attempted sequence number is provided in the [`InitializationInput#getPendingCheckpointSequenceNumber`](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/types/InitializationInput.java#L81) otherwise the value will be null.
-  * [PR #188](https://github.com/awslabs/amazon-kinesis-client/pull/188)
-* Support timeouts, and retry for GetRecords calls.  
-  Applications can now set timeouts for GetRecord calls to Kinesis.  As part of setting the timeout, the application must also provide a thread pool size for concurrent requests.
-  * [PR #214](https://github.com/awslabs/amazon-kinesis-client/pull/214)
-* Notification when the lease table is throttled  
-  When writes, or reads, to the lease table are throttled a warning will be emitted.  If you're seeing this warning you should increase the IOPs for your lease table to prevent processing delays.
-  * [PR #212](https://github.com/awslabs/amazon-kinesis-client/pull/212)
-* Support configuring the graceful shutdown timeout for MultiLang Clients  
-  This adds support for setting the timeout that the Java process will wait for the MutliLang client to complete graceful shutdown.  The timeout can be configured by adding `shutdownGraceMillis` to the properties file set to the number of milliseconds to wait.
-  * [PR #204](https://github.com/awslabs/amazon-kinesis-client/pull/204)
-
-## Release 1.8.1 (August 2, 2017)
-* Support timeouts for calls to the MultiLang Daemon
-  This adds support for setting a timeout when dispatching records to the client record processor. If the record processor doesn't respond within the timeout the parent Java process will be terminated. This is a temporary fix to handle cases where the KCL becomes blocked while waiting for a client record processor.
-  The timeout for the this can be set by adding `timeoutInSeconds = <timeout value>`. The default for this is no timeout.  
-  __Setting this can cause the KCL to exit suddenly, before using this ensure that you have an automated restart for your application__
-  * [PR #195](https://github.com/awslabs/amazon-kinesis-client/pull/195)
-  * [Issue #185](https://github.com/awslabs/amazon-kinesis-client/issues/185)
-
-## Release 1.8.0 (July 25, 2017)
-* Execute graceful shutdown on its own thread
-  * [PR #191](https://github.com/awslabs/amazon-kinesis-client/pull/191)
-  * [Issue #167](https://github.com/awslabs/amazon-kinesis-client/issues/167)
-* Added support for controlling the size of the lease renewer thread pool
-  * [PR #177](https://github.com/awslabs/amazon-kinesis-client/pull/177)
-  * [Issue #171](https://github.com/awslabs/amazon-kinesis-client/issues/171)
-* Require Java 8 and later  
-  __Java 8 is now required for versions 1.8.0 of the amazon-kinesis-client and later.__
-  * [PR #176](https://github.com/awslabs/amazon-kinesis-client/issues/176)
-
-## Release 1.7.6 (June 21, 2017)
-* Added support for graceful shutdown in MultiLang Clients
-  * [PR #174](https://github.com/awslabs/amazon-kinesis-client/pull/174)
-  * [PR #182](https://github.com/awslabs/amazon-kinesis-client/pull/182)
-* Updated documentation for `v2.IRecordProcessor#shutdown`, and `KinesisClientLibConfiguration#idleTimeBetweenReadsMillis`
-  * [PR #170](https://github.com/awslabs/amazon-kinesis-client/pull/170)
-* Updated to version 1.11.151 of the AWS Java SDK
-  * [PR #183](https://github.com/awslabs/amazon-kinesis-client/pull/183)
-
-## Release 1.7.5 (April 7, 2017)
-* Correctly handle throttling for DescribeStream, and save accumulated progress from individual calls.
-  * [PR #152](https://github.com/awslabs/amazon-kinesis-client/pull/152)
-* Upgrade to version 1.11.115 of the AWS Java SDK
-  * [PR #155](https://github.com/awslabs/amazon-kinesis-client/pull/155)
-  
-## Release 1.7.4 (February 27, 2017)
-* Fixed an issue building JavaDoc for Java 8.
-  * [Issue #18](https://github.com/awslabs/amazon-kinesis-client/issues/18)
-  * [PR #141](https://github.com/awslabs/amazon-kinesis-client/pull/141)
-* Reduce Throttling Messages to WARN, unless throttling occurs 6 times consecutively.
-  * [Issue #4](https://github.com/awslabs/amazon-kinesis-client/issues/4)
-  * [PR #140](https://github.com/awslabs/amazon-kinesis-client/pull/140)
-* Fixed two bugs occurring in requestShutdown.
-  * Fixed a bug that prevented the worker from shutting down, via requestShutdown, when no leases were held.
-    * [Issue #128](https://github.com/awslabs/amazon-kinesis-client/issues/128)
-  * Fixed a bug that could trigger a NullPointerException if leases changed during requestShutdown.
-    * [Issue #129](https://github.com/awslabs/amazon-kinesis-client/issues/129)
-  * [PR #139](https://github.com/awslabs/amazon-kinesis-client/pull/139)
-* Upgraded the AWS SDK Version to 1.11.91
-  * [PR #138](https://github.com/awslabs/amazon-kinesis-client/pull/138)
-* Use an executor returned from `ExecutorService.newFixedThreadPool` instead of constructing it by hand.
-  * [PR #135](https://github.com/awslabs/amazon-kinesis-client/pull/135)
-* Correctly initialize DynamoDB client, when endpoint is explicitly set.
-  * [PR #142](https://github.com/awslabs/amazon-kinesis-client/pull/142)
-
-## Release 1.7.3 (January 9, 2017)
-* Upgrade to the newest AWS Java SDK.
-  * [Amazon Kinesis Client Issue #27](https://github.com/awslabs/amazon-kinesis-client-python/issues/27)
-  * [PR #126](https://github.com/awslabs/amazon-kinesis-client/pull/126)
-  * [PR #125](https://github.com/awslabs/amazon-kinesis-client/pull/125)
-* Added a direct dependency on commons-logging.
-  * [Issue #123](https://github.com/awslabs/amazon-kinesis-client/issues/123)
-  * [PR #124](https://github.com/awslabs/amazon-kinesis-client/pull/124)
-* Make ShardInfo public to allow for custom ShardPrioritization strategies.
-  * [Issue #120](https://github.com/awslabs/amazon-kinesis-client/issues/120)
-  * [PR #127](https://github.com/awslabs/amazon-kinesis-client/pull/127)
-
-## Release 1.7.2 (November 7, 2016)
-* MultiLangDaemon Feature Updates
-  The MultiLangDaemon has been upgraded to use the v2 interfaces, which allows access to enhanced checkpointing, and more information during record processor initialization. The MultiLangDaemon clients must be updated before they can take advantage of these new features.
-  
-## Release 1.7.1 (November 3, 2016)
-* General
-  * Allow disabling shard synchronization at startup.
-    * Applications can disable shard synchronization at startup.  Disabling shard synchronization can application startup times for very large streams.
-    * [PR #102](https://github.com/awslabs/amazon-kinesis-client/pull/102)
-  * Applications can now request a graceful shutdown, and record processors that implement the IShutdownNotificationAware will be given a chance to checkpoint before being shutdown.
-    * This adds a [new interface](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/interfaces/v2/IShutdownNotificationAware.java), and a [new method on Worker](https://github.com/awslabs/amazon-kinesis-client/blob/master/src/main/java/com/amazonaws/services/kinesis/clientlibrary/lib/worker/Worker.java#L539).
-    * [PR #109](https://github.com/awslabs/amazon-kinesis-client/pull/109)
-    * Solves [Issue #79](https://github.com/awslabs/amazon-kinesis-client/issues/79)
-* MultiLangDaemon
-  * Applications can now use credential provides that accept string parameters.
-    * [PR #99](https://github.com/awslabs/amazon-kinesis-client/pull/99)
-  * Applications can now use different credentials for each service.
-    * [PR #111](https://github.com/awslabs/amazon-kinesis-client/pull/111)
-
-## Release 1.7.0 (August 22, 2016)
-* Add support for time based iterators ([See GetShardIterator Documentation](http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html))
-  * [PR #94](https://github.com/awslabs/amazon-kinesis-client/pull/94)
-  The `KinesisClientLibConfiguration` now supports providing an initial time stamp position.
-  * This position is only used if there is no current checkpoint for the shard.
-  * This setting cannot be used with DynamoDB Streams
-  Resolves [Issue #88](https://github.com/awslabs/amazon-kinesis-client/issues/88)
-* Allow Prioritization of Parent Shards for Task Assignment
-  * [PR #95](https://github.com/awslabs/amazon-kinesis-client/pull/95)
-  The `KinesisClientLibconfiguration` now supports providing a `ShardPrioritization` strategy.  This strategy controls how the `Worker` determines which `ShardConsumer` to call next.  This can improve processing for streams that split often, such as DynamoDB Streams.
-* Remove direct dependency on `aws-java-sdk-core`, to allow independent versioning.
-  * [PR #92](https://github.com/awslabs/amazon-kinesis-client/pull/92)
-  **You may need to add a direct dependency on aws-java-sdk-core if other dependencies include an older version.**
-
-## Release 1.6.5 (July 25, 2016)
-* Change LeaseManager to call DescribeTable before attempting to create the lease table.
-  * [Issue #36](https://github.com/awslabs/amazon-kinesis-client/issues/36)
-  * [PR #41](https://github.com/awslabs/amazon-kinesis-client/pull/41)
-  * [PR #67](https://github.com/awslabs/amazon-kinesis-client/pull/67)
-* Allow DynamoDB lease table name to be specified
-  * [PR #61](https://github.com/awslabs/amazon-kinesis-client/pull/61)
-* Add approximateArrivalTimestamp for JsonFriendlyRecord
-  * [PR #86](https://github.com/awslabs/amazon-kinesis-client/pull/86)
-* Shutdown lease renewal thread pool on exit.
-  * [PR #84](https://github.com/awslabs/amazon-kinesis-client/pull/84)
-* Wait for CloudWatch publishing thread to finish before exiting.
-  * [PR #82](https://github.com/awslabs/amazon-kinesis-client/pull/82)
-* Added unit, and integration tests for the library.
-
-## Release 1.6.4 (July 6, 2016)
-* Upgrade to AWS SDK for Java 1.11.14
-  * [Issue #74](https://github.com/awslabs/amazon-kinesis-client/issues/74)
-  * [Issue #73](https://github.com/awslabs/amazon-kinesis-client/issues/73)
-* **Maven Artifact Signing Change** 
-  * Artifacts are now signed by the identity `Amazon Kinesis Tools <amazon-kinesis-tools@amazon.com>`
-
-## Release 1.6.3 (May 12, 2016)
-* Fix format exception caused by DEBUG log in LeaseTaker [Issue # 68](https://github.com/awslabs/amazon-kinesis-client/issues/68)
-
-## Release 1.6.2 (March 23, 2016)
-* Support for specifying max leases per worker and max leases to steal at a time.
-* Support for specifying initial DynamoDB table read and write capacity.
-* Support for parallel lease renewal.
-* Support for graceful worker shutdown.
-* Change DefaultCWMetricsPublisher log level to debug. [PR # 49](https://github.com/awslabs/amazon-kinesis-client/pull/49)
-* Avoid NPE in MLD record processor shutdown if record processor was not initialized. [Issue # 29](https://github.com/awslabs/amazon-kinesis-client/issues/29)
-
-## Release 1.6.1 (September 23, 2015)
-* Expose [approximateArrivalTimestamp](http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetRecords.html) for Records in processRecords API call.
-
-## Release 1.6.0 (July 31, 2015)
-* Restores compatibility with [dynamodb-streams-kinesis-adapter](https://github.com/awslabs/dynamodb-streams-kinesis-adapter) (which was broken in 1.4.0).
-
-## Release 1.5.1 (July 20, 2015)
-* KCL maven artifact 1.5.0 does not work with JDK 7. This release addresses this issue.
-
-## Release 1.5.0 (July 9, 2015)
-* **[Metrics Enhancements][kinesis-guide-monitoring-with-kcl]**
-	* Support metrics level and dimension configurations to control CloudWatch metrics emitted by the KCL.
-	* Add new metrics that track time spent in record processor methods.
-	* Disable WorkerIdentifier dimension by default.
-* **Exception Reporting** &mdash; Do not silently ignore exceptions in ShardConsumer.
-* **AWS SDK Component Dependencies** &mdash; Depend only on AWS SDK components that are used.
-
-## Release 1.4.0 (June 2, 2015)
-* Integration with the **[Kinesis Producer Library (KPL)][kinesis-guide-kpl]**
-	* Automatically de-aggregate records put into the Kinesis stream using the KPL.
-	* Support checkpointing at the individual user record level when multiple user records are aggregated into one Kinesis record using the KPL.
-
- See [Consumer De-aggregation with the KCL][kinesis-guide-consumer-deaggregation] for details.
-
-## Release 1.3.0 (May 22, 2015)
-* A new metric called "MillisBehindLatest", which tracks how far consumers are from real time, is now uploaded to CloudWatch.
-
-## Release 1.2.1 (January 26, 2015)
-* **MultiLangDaemon** &mdash; Changes to the MultiLangDaemon to make it easier to provide a custom worker.
-
-## Release 1.2 (October 21, 2014)
-* **Multi-Language Support** &mdash; Amazon KCL now supports implementing record processors in any language by communicating with the daemon over [STDIN and STDOUT][multi-lang-protocol]. Python developers can directly use the [Amazon Kinesis Client Library for Python][kclpy] to write their data processing applications.
-
-## Release 1.1 (June 30, 2014)
-* **Checkpointing at a specific sequence number** &mdash; The IRecordProcessorCheckpointer interface now supports checkpointing at a sequence number specified by the record processor.
-* **Set region** &mdash; KinesisClientLibConfiguration now supports setting the region name to indicate the location of the Amazon Kinesis service. The Amazon DynamoDB table and Amazon CloudWatch metrics associated with your application will also use this region setting.
 
 [kinesis]: http://aws.amazon.com/kinesis
 [kinesis-forum]: http://developer.amazonwebservices.com/connect/forum.jspa?forumID=169

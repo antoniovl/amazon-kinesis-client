@@ -61,6 +61,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.kinesis.common.InitialPositionInStreamExtended;
+import software.amazon.kinesis.common.RequestDetails;
 import software.amazon.kinesis.leases.ShardInfo;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
@@ -76,6 +77,10 @@ public class ShardConsumerSubscriberTest {
     private final Object processedNotifier = new Object();
 
     private static final String TERMINAL_MARKER = "Terminal";
+
+    private static final long DEFAULT_NOTIFIER_TIMEOUT = 5000L;
+
+    private final RequestDetails lastSuccessfulRequestDetails = new RequestDetails();
 
     @Mock
     private ShardConsumer shardConsumer;
@@ -121,10 +126,7 @@ public class ShardConsumerSubscriberTest {
 
         setupNotifierAnswer(1);
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         verify(shardConsumer).handleInput(argThat(eqProcessRecordsInput(processRecordsInput)), any(Subscription.class));
     }
@@ -135,10 +137,7 @@ public class ShardConsumerSubscriberTest {
 
         setupNotifierAnswer(recordsPublisher.responses.size());
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         verify(shardConsumer, times(100)).handleInput(argThat(eqProcessRecordsInput(processRecordsInput)), any(Subscription.class));
     }
@@ -167,16 +166,12 @@ public class ShardConsumerSubscriberTest {
             }
         }).when(shardConsumer).handleInput(any(ProcessRecordsInput.class), any(Subscription.class));
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         assertThat(subscriber.getAndResetDispatchFailure(), equalTo(testException));
         assertThat(subscriber.getAndResetDispatchFailure(), nullValue());
 
         verify(shardConsumer, times(20)).handleInput(argThat(eqProcessRecordsInput(processRecordsInput)), any(Subscription.class));
-
     }
 
     @Test
@@ -188,10 +183,7 @@ public class ShardConsumerSubscriberTest {
 
         setupNotifierAnswer(10);
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         for (int attempts = 0; attempts < 10; attempts++) {
             if (subscriber.retrievalFailure() != null) {
@@ -216,10 +208,7 @@ public class ShardConsumerSubscriberTest {
 
         setupNotifierAnswer(10);
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         for (int attempts = 0; attempts < 10; attempts++) {
             if (subscriber.retrievalFailure() != null) {
@@ -232,7 +221,7 @@ public class ShardConsumerSubscriberTest {
 
         synchronized (processedNotifier) {
             assertThat(subscriber.healthCheck(100000), equalTo(expected));
-            processedNotifier.wait(5000);
+            processedNotifier.wait(DEFAULT_NOTIFIER_TIMEOUT);
         }
 
         assertThat(recordsPublisher.restartedFrom, equalTo(edgeRecord));
@@ -263,10 +252,7 @@ public class ShardConsumerSubscriberTest {
             return null;
         }).when(shardConsumer).handleInput(any(ProcessRecordsInput.class), any(Subscription.class));
 
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-            processedNotifier.wait(5000);
-        }
+        startSubscriptionsAndWait();
 
         synchronized (processedNotifier) {
             executorService.execute(() -> {
@@ -286,7 +272,7 @@ public class ShardConsumerSubscriberTest {
             //
             // Wait for our blocking thread to control the thread in the executor.
             //
-            processedNotifier.wait(5000);
+            processedNotifier.wait(DEFAULT_NOTIFIER_TIMEOUT);
         }
 
         Stream.iterate(2, i -> i + 1).limit(97).forEach(this::addUniqueItem);
@@ -297,7 +283,7 @@ public class ShardConsumerSubscriberTest {
             assertThat(subscriber.healthCheck(1), nullValue());
             barrier.await(500, TimeUnit.MILLISECONDS);
 
-            processedNotifier.wait(5000);
+            processedNotifier.wait(DEFAULT_NOTIFIER_TIMEOUT);
         }
 
         verify(shardConsumer, times(100)).handleInput(argThat(eqProcessRecordsInput(processRecordsInput)), any(Subscription.class));
@@ -305,12 +291,10 @@ public class ShardConsumerSubscriberTest {
         assertThat(received.size(), equalTo(recordsPublisher.responses.size()));
         Stream.iterate(0, i -> i + 1).limit(received.size()).forEach(i -> assertThat(received.get(i),
                 eqProcessRecordsInput(recordsPublisher.responses.get(i).recordsRetrieved.processRecordsInput())));
-
     }
 
     @Test
     public void restartAfterRequestTimerExpiresWhenNotGettingRecordsAfterInitialization() throws Exception {
-
         executorService = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
                 .setNameFormat("test-" + testName.getMethodName() + "-%04d").setDaemon(true).build());
 
@@ -333,9 +317,7 @@ public class ShardConsumerSubscriberTest {
         }).when(shardConsumer).handleInput(any(ProcessRecordsInput.class), any(Subscription.class));
 
         // First try to start subscriptions.
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-        }
+        startSubscriptionsAndWait(100);
 
         // Verifying that there are no interactions with shardConsumer mock indicating no records were sent back and
         // subscription has not started correctly.
@@ -361,12 +343,10 @@ public class ShardConsumerSubscriberTest {
         assertThat(received.size(), equalTo(recordsPublisher.responses.size()));
         Stream.iterate(0, i -> i + 1).limit(received.size()).forEach(i -> assertThat(received.get(i),
                 eqProcessRecordsInput(recordsPublisher.responses.get(i).recordsRetrieved.processRecordsInput())));
-
     }
 
     @Test
     public void restartAfterRequestTimerExpiresWhenInitialTaskExecutionIsRejected() throws Exception {
-
         executorService = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
                 .setNameFormat("test-" + testName.getMethodName() + "-%04d").setDaemon(true).build());
 
@@ -393,9 +373,7 @@ public class ShardConsumerSubscriberTest {
         }).when(shardConsumer).handleInput(any(ProcessRecordsInput.class), any(Subscription.class));
 
         // First try to start subscriptions.
-        synchronized (processedNotifier) {
-            subscriber.startSubscriptions();
-        }
+        startSubscriptionsAndWait(100);
 
         // Verifying that there are no interactions with shardConsumer mock indicating no records were sent back and
         // subscription has not started correctly.
@@ -421,7 +399,6 @@ public class ShardConsumerSubscriberTest {
         assertThat(received.size(), equalTo(recordsPublisher.responses.size()));
         Stream.iterate(0, i -> i + 1).limit(received.size()).forEach(i -> assertThat(received.get(i),
                 eqProcessRecordsInput(recordsPublisher.responses.get(i).recordsRetrieved.processRecordsInput())));
-
     }
 
     private Object directlyExecuteRunnable(InvocationOnMock invocation) {
@@ -472,6 +449,17 @@ public class ShardConsumerSubscriberTest {
                 return null;
             }
         }).when(shardConsumer).handleInput(any(ProcessRecordsInput.class), any(Subscription.class));
+    }
+
+    private void startSubscriptionsAndWait() throws InterruptedException {
+        startSubscriptionsAndWait(DEFAULT_NOTIFIER_TIMEOUT);
+    }
+
+    private void startSubscriptionsAndWait(long timeout) throws InterruptedException {
+        synchronized (processedNotifier) {
+            subscriber.startSubscriptions();
+            processedNotifier.wait(timeout);
+        }
     }
 
     private class ResponseItem {
@@ -557,6 +545,11 @@ public class ShardConsumerSubscriberTest {
         }
 
         @Override
+        public RequestDetails getLastSuccessfulRequestDetails() {
+            return lastSuccessfulRequestDetails;
+        }
+
+        @Override
         public void subscribe(Subscriber<? super RecordsRetrieved> s) {
             subscriber = s;
             s.onSubscribe(new Subscription() {
@@ -623,8 +616,6 @@ public class ShardConsumerSubscriberTest {
 
     /**
      * Test to validate the warning message from ShardConsumer is not suppressed with the default configuration of 0
-     * 
-     * @throws Exception
      */
     @Test
     public void noLoggingSuppressionNeededOnHappyPathTest() {
@@ -648,8 +639,6 @@ public class ShardConsumerSubscriberTest {
 
     /**
      * Test to validate the warning message from ShardConsumer is not suppressed with the default configuration of 0
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingNotSuppressedAfterTimeoutTest() {
@@ -677,8 +666,6 @@ public class ShardConsumerSubscriberTest {
     /**
      * Test to validate the warning message from ShardConsumer is successfully supressed if we only have intermittant
      * readTimeouts.
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingSuppressedAfterIntermittentTimeoutTest() {
@@ -705,8 +692,6 @@ public class ShardConsumerSubscriberTest {
     /**
      * Test to validate the warning message from ShardConsumer is successfully logged if multiple sequential timeouts
      * occur.
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingPartiallySuppressedAfterMultipleTimeoutTest() {
@@ -733,8 +718,6 @@ public class ShardConsumerSubscriberTest {
 
     /**
      * Test to validate the warning message from ShardConsumer is successfully logged if sequential timeouts occur.
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingPartiallySuppressedAfterConsecutiveTimeoutTest() {
@@ -763,8 +746,6 @@ public class ShardConsumerSubscriberTest {
     /**
      * Test to validate the non-timeout warning message from ShardConsumer is not suppressed with the default
      * configuration of 0
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingNotSuppressedOnNonReadTimeoutExceptionNotIgnoringReadTimeoutsExceptionTest() {
@@ -792,12 +773,9 @@ public class ShardConsumerSubscriberTest {
     /**
      * Test to validate the non-timeout warning message from ShardConsumer is not suppressed with 2 ReadTimeouts to
      * ignore
-     * 
-     * @throws Exception
      */
     @Test
     public void loggingNotSuppressedOnNonReadTimeoutExceptionIgnoringReadTimeoutsTest() {
-
         // We're not throwing a ReadTimeout, so no suppression is expected.
         // The test expects a non-ReadTimeout exception to be thrown on requests 3 and 5, and we expect logs on
         // each Non-ReadTimeout Exception, no matter what the number of ReadTimeoutsToIgnore we pass in,

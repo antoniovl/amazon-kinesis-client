@@ -12,7 +12,7 @@ import software.amazon.kinesis.metrics.MetricsScope;
  * Helper class to sync leases with shards of the Kinesis stream.
  * It will create new leases/activities when it discovers new Kinesis shards (bootstrap/resharding).
  * It deletes leases for shards that have been trimmed from Kinesis, or if we've completed processing it
- * and begun processing it's child shards.
+ * and begun processing its child shards.
  *
  * <p>NOTE: This class is deprecated and will be removed in a future release.</p>
  */
@@ -26,7 +26,6 @@ public class ShardSyncer {
      * @param shardDetector
      * @param leaseRefresher
      * @param initialPosition
-     * @param cleanupLeasesOfCompletedShards
      * @param ignoreUnexpectedChildShards
      * @param scope
      * @throws DependencyException
@@ -37,10 +36,9 @@ public class ShardSyncer {
     @Deprecated
     public static synchronized void checkAndCreateLeasesForNewShards(@NonNull final ShardDetector shardDetector,
             final LeaseRefresher leaseRefresher, final InitialPositionInStreamExtended initialPosition,
-            final boolean cleanupLeasesOfCompletedShards, final boolean ignoreUnexpectedChildShards,
-            final MetricsScope scope) throws DependencyException, InvalidStateException, ProvisionedThroughputException,
-            KinesisClientLibIOException {
-        HIERARCHICAL_SHARD_SYNCER.checkAndCreateLeaseForNewShards(shardDetector, leaseRefresher, initialPosition,
-                cleanupLeasesOfCompletedShards, ignoreUnexpectedChildShards, scope);
+            final boolean ignoreUnexpectedChildShards, final MetricsScope scope)
+            throws DependencyException, InvalidStateException, ProvisionedThroughputException, KinesisClientLibIOException, InterruptedException {
+            HIERARCHICAL_SHARD_SYNCER.checkAndCreateLeaseForNewShards(shardDetector, leaseRefresher, initialPosition,
+                    scope, ignoreUnexpectedChildShards, leaseRefresher.isLeaseTableEmpty());
     }
 }

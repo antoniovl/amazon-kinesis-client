@@ -1,11 +1,14 @@
 # Amazon Kinesis Client Library for Java
-[![Build Status](https://travis-ci.org/awslabs/amazon-kinesis-client.svg?branch=master)](https://travis-ci.org/awslabs/amazon-kinesis-client) ![BuildStatus](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiaWo4bDYyUkpWaG9ZTy9zeFVoaVlWbEwxazdicDJLcmZwUUpFWVVBM0ZueEJSeFIzNkhURzdVbUd6WUZHcGNxa3BEUzNrL0I5Nzc4NE9rbXhvdEpNdlFRPSIsIml2UGFyYW1ldGVyU3BlYyI6IlZDaVZJSTM1QW95bFRTQnYiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+[![Build Status](https://travis-ci.org/awslabs/amazon-kinesis-client.svg?branch=master)](https://travis-ci.org/awslabs/amazon-kinesis-client)
 
 The **Amazon Kinesis Client Library for Java** (Amazon KCL) enables Java developers to easily consume and process data from [Amazon Kinesis][kinesis].
 
 * [Kinesis Product Page][kinesis]
 * [Forum][kinesis-forum]
 * [Issues][kinesis-client-library-issues]
+
+### Recommended Upgrade for All Users of the 1.x Amazon Kinesis Client
+:warning: We recommend customers to migrate to 1.14.1 or newer to avoid [known bugs](https://github.com/awslabs/amazon-kinesis-client/issues/778) in 1.14.0 version
 
 ### Recommended Upgrade for All Users of the 2.x Amazon Kinesis Client
 **:warning: It's highly recommended for users of version 2.0 of the Amazon Kinesis Client to upgrade to version 2.0.3 or later. A [bug has been](https://github.com/awslabs/amazon-kinesis-client/issues/391) identified in versions prior to 2.0.3 that could cause records to be delivered to the wrong record processor.**  
@@ -28,7 +31,16 @@ Please open an issue if you have any questions.
 
 ## Building from Source
 
-After you've downloaded the code from GitHub, you can build it using Maven. To disable GPG signing in the build, use this command: `mvn clean install -Dgpg.skip=true`
+After you've downloaded the code from GitHub, you can build it using Maven. To disable GPG signing in the build, use
+ this command: `mvn clean install -Dgpg.skip=true`. Note: This command runs Integration tests, which in turn creates AWS
+  resources (which requires manual cleanup). Integration tests require valid AWS credentials need to be discovered at
+   runtime. To skip running integration tests, add ` -DskipITs` option to the build command.
+
+## Running Integration Tests
+
+To run integration tests: `mvn -Dit.test=*IntegrationTest verify`. 
+This will look for a default AWS profile specified in your local `.aws/credentials`. 
+Optionally, you can provide the name of an IAM user/role to run tests with as a string using this command: `mvn -Dit.test=*IntegrationTest -DawsProfile="<PROFILE_NAME>" verify`.
 
 ## Integration with the Kinesis Producer Library
 For producer-side developers using the **[Kinesis Producer Library (KPL)][kinesis-guide-kpl]**, the KCL integrates without additional effort. When the KCL retrieves an aggregated Amazon Kinesis record consisting of multiple KPL user records, it will automatically invoke the KPL to extract the individual user records before returning them to the user.
@@ -44,7 +56,7 @@ The recommended way to use the KCL for Java is to consume it from Maven.
   <dependency>
       <groupId>software.amazon.kinesis</groupId>
       <artifactId>amazon-kinesis-client</artifactId>
-      <version>2.2.4</version>
+      <version>2.5.1</version>
   </dependency>
   ```
 
@@ -54,66 +66,16 @@ The recommended way to use the KCL for Java is to consume it from Maven.
   <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>amazon-kinesis-client</artifactId>
-      <version>1.11.2</version>
+      <version>1.14.1</version>
   </dependency>
   ```
 
 ## Release Notes
 
-### Latest Release (2.2.6 - November 7, 2019)
-[Milestone#43](https://github.com/awslabs/amazon-kinesis-client/milestone/43)
-* Updating the SDK version to 2.9.25.
-  * [PR#638](https://github.com/awslabs/amazon-kinesis-client/pull/638)
-* Clearing the local cache on a subscription termination, to avoid noisy logs on new subscriptions.
-  * [PR#642](https://github.com/awslabs/amazon-kinesis-client/pull/642)
-* Updating the SDK version to 2.10.0 in order to fix the premature H2 stream close issue.
-  * [PR#649](https://github.com/awslabs/amazon-kinesis-client/pull/649)
-  * NOTE: SDK has a known connection teardown issue when multiple H2 streams are used within a connection. This might result in shard consumers sticking to a stale service host and not progressing. If your shard consumer gets stuck, use the following configuration as a workaround. This configuration might result in up to 5X increase in total connections.
-  ```
-  KinesisAsyncClient kinesisClient = KinesisAsyncClient.builder()
-                                                       .region(region)
-                                                       .httpClientBuilder(NettyNioAsyncHttpClient.builder().maxConcurrency(Integer.MAX_VALUE).maxHttp2Streams(1))
-                                                       .build()
-  ```
-
-### Related Prior Release (2.2.5 - October 23, 2019)
-[Milestone#40](https://github.com/awslabs/amazon-kinesis-client/milestone/40)
-* Updating Sonatype to dedicated AWS endpoint.
-  * [PR#619](https://github.com/awslabs/amazon-kinesis-client/pull/619)
-* Introducing a validation step to verify if ShardEnd is reached, to prevent shard consumer stuck scenarios in the event of malformed response from service.
-  * [PR#624](https://github.com/awslabs/amazon-kinesis-client/pull/624)
-
-### Related Prior Release (2.2.4 - September 23, 2019)
-[Milestone#39](https://github.com/awslabs/amazon-kinesis-client/milestone/39)
-* Making FanoutRecordsPublisher test cases resilient to delayed thread operations
-  * [PR#612](https://github.com/awslabs/amazon-kinesis-client/pull/612)
-* Drain delivery queue in the FanoutRecordsPublisher to make slow consumers consume events at their pace
-  * [PR#607](https://github.com/awslabs/amazon-kinesis-client/pull/607)
-* Fix to prevent the onNext event going to stale subscription when restart happens in PrefetchRecordsPublisher
-  * [PR#606](https://github.com/awslabs/amazon-kinesis-client/pull/606)
-
-### Related Prior Release (2.2.3 - September 04, 2019)
-[Milestone#38](https://github.com/awslabs/amazon-kinesis-client/milestone/38)
-* Fix to prevent data loss and stuck shards in the event of failed records delivery in Polling readers
-  * [PR#603](https://github.com/awslabs/amazon-kinesis-client/pull/603)
-
-### Related Prior Release (2.2.2 - August 19, 2019)
-[Milestone#36](https://github.com/awslabs/amazon-kinesis-client/milestone/36)
-* Fix to prevent invalid ShardConsumer state transitions due to rejected executor service executions.
-  * [PR#560](https://github.com/awslabs/amazon-kinesis-client/pull/560)
-* Fixing a bug in which initial subscription failure caused a shard consumer to get stuck.
-  * [PR#562](https://github.com/awslabs/amazon-kinesis-client/pull/562)
-* Making CW publish failures visible by executing the async publish calls in a blocking manner and logging on exception.
-  * [PR#584](https://github.com/awslabs/amazon-kinesis-client/pull/584)
-* Update shard end checkpoint failure messaging.
-  * [PR#591](https://github.com/awslabs/amazon-kinesis-client/pull/591)
-* A fix for resiliency and durability issues that occur in the reduced thread mode - Nonblocking approach.
-  * [PR#573](https://github.com/awslabs/amazon-kinesis-client/pull/573)
-* Preventing duplicate delivery due to unacknowledged event, while completing the subscription.
-  * [PR#596](https://github.com/awslabs/amazon-kinesis-client/pull/596)
-
-
-### For remaining release notes check **[CHANGELOG.md][changelog-md]**.
+| KCL Version | Changelog |
+| --- | --- |
+| 2.x | [master/CHANGELOG.md](CHANGELOG.md) |
+| 1.x | [v1.x/CHANGELOG.md](https://github.com/awslabs/amazon-kinesis-client/blob/v1.x/CHANGELOG.md) |
 
 [kinesis]: http://aws.amazon.com/kinesis
 [kinesis-forum]: http://developer.amazonwebservices.com/connect/forum.jspa?forumID=169
@@ -128,5 +90,4 @@ The recommended way to use the KCL for Java is to consume it from Maven.
 [kinesis-guide-consumer-deaggregation]: http://docs.aws.amazon.com//kinesis/latest/dev/kinesis-kpl-consumer-deaggregation.html
 [kclpy]: https://github.com/awslabs/amazon-kinesis-client-python
 [multi-lang-protocol]: https://github.com/awslabs/amazon-kinesis-client/blob/master/amazon-kinesis-client-multilang/src/main/java/software/amazon/kinesis/multilang/package-info.java
-[changelog-md]: https://github.com/awslabs/amazon-kinesis-client/blob/master/CHANGELOG.md
 [migration-guide]: https://docs.aws.amazon.com/streams/latest/dev/kcl-migration.html

@@ -22,7 +22,7 @@
   <parent>
     <groupId>software.amazon.kinesis</groupId>
     <artifactId>amazon-kinesis-client-pom</artifactId>
-    <version>2.2.6</version>
+    <version>2.5.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>amazon-kinesis-client</artifactId>
@@ -50,7 +50,8 @@
     <sqlite4java.version>1.0.392</sqlite4java.version>
     <sqlite4java.native>libsqlite4java</sqlite4java.native>
     <sqlite4java.libpath>${project.build.directory}/test-lib</sqlite4java.libpath>
-    <slf4j.version>1.7.25</slf4j.version>
+    <slf4j.version>2.0.7</slf4j.version>
+    <gsr.version>1.1.14</gsr.version>
   </properties>
 
   <dependencies>
@@ -75,19 +76,29 @@
       <version>${awssdk.version}</version>
     </dependency>
     <dependency>
+      <groupId>software.amazon.glue</groupId>
+      <artifactId>schema-registry-serde</artifactId>
+      <version>${gsr.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.glue</groupId>
+      <artifactId>schema-registry-common</artifactId>
+      <version>${gsr.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>26.0-jre</version>
+      <version>32.1.1-jre</version>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>2.6.1</version>
+      <version>3.21.12</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.8.1</version>
+      <version>3.12.0</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -96,15 +107,15 @@
     </dependency>
 
     <dependency>
-      <groupId>io.reactivex.rxjava2</groupId>
+      <groupId>io.reactivex.rxjava3</groupId>
       <artifactId>rxjava</artifactId>
-      <version>2.1.14</version>
+      <version>3.1.6</version>
     </dependency>
 
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.16.20</version>
+      <version>1.18.24</version>
       <scope>provided</scope>
     </dependency>
 
@@ -112,7 +123,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.11</version>
+      <version>4.13.2</version>
       <scope>test</scope>
     </dependency>
 
@@ -141,7 +152,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.1.7</version>
+      <version>1.3.0</version>
       <scope>test</scope>
     </dependency>
 
@@ -172,7 +183,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.2</version>
+          <version>3.11.0</version>
           <configuration>
             <source>1.8</source>
             <target>1.8</target>
@@ -186,7 +197,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
+        <version>2.22.2</version>
         <configuration>
           <excludes>
             <exclude>**/*IntegrationTest.java</exclude>
@@ -196,13 +207,17 @@
               <name>sqlite4java.library.path</name>
               <value>${sqlite4java.libpath}</value>
             </property>
+            <property>
+              <name>awsProfile</name>
+              <value>${awsProfile}</value>
+            </property>
           </systemProperties>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.19.1</version>
+        <version>2.22.2</version>
         <configuration>
           <includes>
             <include>**/*IntegrationTest.java</include>
@@ -288,7 +303,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
+        <version>3.5.0</version>
         <configuration>
           <excludePackageNames>com.amazonaws.services.kinesis.producer.protobuf</excludePackageNames>
         </configuration>
@@ -304,13 +319,53 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
             <goals>
               <goal>jar</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Required for generating maven version as a Java class for runtime access -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>templating-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <id>generate-version-class</id>
+            <goals>
+              <goal>filter-sources</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>copy-dist</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/target/generated-sources/java-templates/</directory>
+                  <filtering>false</filtering>
+                  <excludes>
+                  </excludes>
+                </resource>
+              </resources>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -324,7 +379,7 @@
         <jdk>[1.8,)</jdk>
       </activation>
       <properties>
-        <additionalparam>-Xdoclint:none</additionalparam>
+        <doclint>none</doclint>
       </properties>
     </profile>
   </profiles>

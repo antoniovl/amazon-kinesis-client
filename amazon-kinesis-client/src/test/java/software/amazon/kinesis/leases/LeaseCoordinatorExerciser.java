@@ -14,10 +14,11 @@
  */
 package software.amazon.kinesis.leases;
 
-import java.awt.*;
+import java.awt.Button;
+import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -25,7 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.*;
+import javax.swing.BoxLayout;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -54,9 +58,8 @@ public class LeaseCoordinatorExerciser {
     private static final long INITIAL_LEASE_TABLE_READ_CAPACITY = 10L;
     private static final long INITIAL_LEASE_TABLE_WRITE_CAPACITY = 50L;
 
-    public static void main(String[] args) throws InterruptedException, DependencyException, InvalidStateException,
-            ProvisionedThroughputException, IOException {
-
+    public static void main(String[] args) throws DependencyException, InvalidStateException,
+            ProvisionedThroughputException {
         int numCoordinators = 9;
         int numLeases = 73;
         int leaseDurationMillis = 10000;
@@ -68,8 +71,7 @@ public class LeaseCoordinatorExerciser {
         LeaseRefresher leaseRefresher = new DynamoDBLeaseRefresher("nagl_ShardProgress", dynamoDBClient,
                 new DynamoDBLeaseSerializer(), true, TableCreatorCallback.NOOP_TABLE_CREATOR_CALLBACK);
 
-        if (leaseRefresher.createLeaseTableIfNotExists(INITIAL_LEASE_TABLE_READ_CAPACITY,
-                INITIAL_LEASE_TABLE_WRITE_CAPACITY)) {
+        if (leaseRefresher.createLeaseTableIfNotExists()) {
             log.info("Waiting for newly created lease table");
             if (!leaseRefresher.waitUntilLeaseTableExists(10, 300)) {
                 log.error("Table was not created in time");

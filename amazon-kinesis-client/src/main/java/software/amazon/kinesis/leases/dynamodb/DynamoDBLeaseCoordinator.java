@@ -14,6 +14,8 @@
  */
 package software.amazon.kinesis.leases.dynamodb;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -28,9 +30,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.kinesis.annotations.KinesisClientInternalApi;
 import software.amazon.kinesis.leases.Lease;
@@ -38,6 +37,7 @@ import software.amazon.kinesis.leases.LeaseCoordinator;
 import software.amazon.kinesis.leases.LeaseRefresher;
 import software.amazon.kinesis.leases.LeaseRenewer;
 import software.amazon.kinesis.leases.LeaseTaker;
+import software.amazon.kinesis.leases.MultiStreamLease;
 import software.amazon.kinesis.leases.ShardInfo;
 import software.amazon.kinesis.leases.exceptions.DependencyException;
 import software.amazon.kinesis.leases.exceptions.InvalidStateException;
@@ -47,6 +47,8 @@ import software.amazon.kinesis.metrics.MetricsFactory;
 import software.amazon.kinesis.metrics.MetricsLevel;
 import software.amazon.kinesis.metrics.MetricsScope;
 import software.amazon.kinesis.metrics.MetricsUtil;
+
+import static software.amazon.kinesis.common.CommonCalculations.getRenewerTakerIntervalMillis;
 
 /**
  * LeaseCoordinator abstracts away LeaseTaker and LeaseRenewer from the application code that's using leasing. It owns
@@ -155,7 +157,7 @@ public class DynamoDBLeaseCoordinator implements LeaseCoordinator {
                 .withMaxLeasesToStealAtOneTime(maxLeasesToStealAtOneTime);
         this.leaseRenewer = new DynamoDBLeaseRenewer(
                 leaseRefresher, workerIdentifier, leaseDurationMillis, leaseRenewalThreadpool, metricsFactory);
-        this.renewerIntervalMillis = leaseDurationMillis / 3 - epsilonMillis;
+        this.renewerIntervalMillis = getRenewerTakerIntervalMillis(leaseDurationMillis, epsilonMillis);
         this.takerIntervalMillis = (leaseDurationMillis + epsilonMillis) * 2;
         if (initialLeaseTableReadCapacity <= 0) {
             throw new IllegalArgumentException("readCapacity should be >= 1");
@@ -210,10 +212,9 @@ public class DynamoDBLeaseCoordinator implements LeaseCoordinator {
     @Override
     public void initialize() throws ProvisionedThroughputException, DependencyException, IllegalStateException {
         final boolean newTableCreated =
-                leaseRefresher.createLeaseTableIfNotExists(initialLeaseTableReadCapacity, initialLeaseTableWriteCapacity);
+                leaseRefresher.createLeaseTableIfNotExists();
         if (newTableCreated) {
-            log.info("Created new lease table for coordinator with initial read capacity of {} and write capacity of {}.",
-                    initialLeaseTableReadCapacity, initialLeaseTableWriteCapacity);
+            log.info("Created new lease table for coordinator with pay per request billing mode.");
         }
         // Need to wait for table in active state.
         final long secondsBetweenPolls = 10L;
@@ -328,8 +329,9 @@ public class DynamoDBLeaseCoordinator implements LeaseCoordinator {
 
     @Override
     public void stopLeaseTaker() {
-        takerFuture.cancel(false);
-
+        if (takerFuture != null) {
+            takerFuture.cancel(false);
+        }
     }
 
     @Override
@@ -348,8 +350,8 @@ public class DynamoDBLeaseCoordinator implements LeaseCoordinator {
 
     @Override
     public boolean updateLease(final Lease lease, final UUID concurrencyToken, final String operation,
-            final String shardId) throws DependencyException, InvalidStateException, ProvisionedThroughputException {
-        return leaseRenewer.updateLease(lease, concurrencyToken, operation, shardId);
+            final String singleStreamShardId) throws DependencyException, InvalidStateException, ProvisionedThroughputException {
+        return leaseRenewer.updateLease(lease, concurrencyToken, operation, singleStreamShardId);
     }
 
     /**
@@ -377,9 +379,19 @@ public class DynamoDBLeaseCoordinator implements LeaseCoordinator {
         return leases.stream().map(DynamoDBLeaseCoordinator::convertLeaseToAssignment).collect(Collectors.toList());
     }
 
+    /**
+     * Utility method to convert the basic lease or multistream lease to ShardInfo
+     * @param lease
+     * @return ShardInfo
+     */
     public static ShardInfo convertLeaseToAssignment(final Lease lease) {
-        return new ShardInfo(lease.leaseKey(), lease.concurrencyToken().toString(), lease.parentShardIds(),
-                lease.checkpoint());
+        if (lease instanceof MultiStreamLease) {
+            return new ShardInfo(((MultiStreamLease) lease).shardId(), lease.concurrencyToken().toString(), lease.parentShardIds(),
+                    lease.checkpoint(), ((MultiStreamLease) lease).streamIdentifier());
+        } else {
+            return new ShardInfo(lease.leaseKey(), lease.concurrencyToken().toString(), lease.parentShardIds(),
+                    lease.checkpoint());
+        }
     }
 
     /**

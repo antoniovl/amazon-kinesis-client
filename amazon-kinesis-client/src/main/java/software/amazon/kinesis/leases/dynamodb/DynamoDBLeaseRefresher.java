@@ -14,19 +14,23 @@
  */
 package software.amazon.kinesis.leases.dynamodb;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.core.util.DefaultSdkAutoConstructList;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
@@ -44,14 +48,17 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 import software.amazon.awssdk.services.dynamodb.model.TableStatus;
+import software.amazon.awssdk.services.dynamodb.model.Tag;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.kinesis.annotations.KinesisClientInternalApi;
 import software.amazon.kinesis.common.FutureUtils;
+import software.amazon.kinesis.common.StreamIdentifier;
 import software.amazon.kinesis.leases.Lease;
 import software.amazon.kinesis.leases.LeaseManagementConfig;
 import software.amazon.kinesis.leases.LeaseRefresher;
 import software.amazon.kinesis.leases.LeaseSerializer;
+import software.amazon.kinesis.leases.UpdateField;
 import software.amazon.kinesis.leases.exceptions.DependencyException;
 import software.amazon.kinesis.leases.exceptions.InvalidStateException;
 import software.amazon.kinesis.leases.exceptions.ProvisionedThroughputException;
@@ -72,8 +79,13 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
     private final TableCreatorCallback tableCreatorCallback;
 
     private final Duration dynamoDbRequestTimeout;
+    private final BillingMode billingMode;
+    private final Collection<Tag> tags;
 
     private boolean newTableCreated = false;
+
+    private static final String STREAM_NAME = "streamName";
+    private static final String DDB_STREAM_NAME = ":streamName";
 
     /**
      * Constructor.
@@ -111,22 +123,62 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
 
     /**
      * Constructor.
-     *  @param table
+     * @param table
      * @param dynamoDBClient
      * @param serializer
      * @param consistentReads
      * @param tableCreatorCallback
      * @param dynamoDbRequestTimeout
      */
+    @Deprecated
     public DynamoDBLeaseRefresher(final String table, final DynamoDbAsyncClient dynamoDBClient,
                                   final LeaseSerializer serializer, final boolean consistentReads,
                                   @NonNull final TableCreatorCallback tableCreatorCallback, Duration dynamoDbRequestTimeout) {
+        this(table, dynamoDBClient, serializer, consistentReads, tableCreatorCallback, dynamoDbRequestTimeout, BillingMode.PAY_PER_REQUEST);
+    }
+
+    /**
+     * Constructor.
+     * @param table
+     * @param dynamoDBClient
+     * @param serializer
+     * @param consistentReads
+     * @param tableCreatorCallback
+     * @param dynamoDbRequestTimeout
+     * @param billingMode
+     */
+    @Deprecated
+    public DynamoDBLeaseRefresher(final String table, final DynamoDbAsyncClient dynamoDBClient,
+                                  final LeaseSerializer serializer, final boolean consistentReads,
+                                  @NonNull final TableCreatorCallback tableCreatorCallback, Duration dynamoDbRequestTimeout,
+                                  final BillingMode billingMode) {
+        this(table, dynamoDBClient, serializer, consistentReads, tableCreatorCallback, dynamoDbRequestTimeout,
+                billingMode, DefaultSdkAutoConstructList.getInstance());
+    }
+
+    /**
+     * Constructor.
+     * @param table
+     * @param dynamoDBClient
+     * @param serializer
+     * @param consistentReads
+     * @param tableCreatorCallback
+     * @param dynamoDbRequestTimeout
+     * @param billingMode
+     * @param tags
+     */
+    public DynamoDBLeaseRefresher(final String table, final DynamoDbAsyncClient dynamoDBClient,
+                                  final LeaseSerializer serializer, final boolean consistentReads,
+                                  @NonNull final TableCreatorCallback tableCreatorCallback, Duration dynamoDbRequestTimeout,
+                                  final BillingMode billingMode, final Collection<Tag> tags) {
         this.table = table;
         this.dynamoDBClient = dynamoDBClient;
         this.serializer = serializer;
         this.consistentReads = consistentReads;
         this.tableCreatorCallback = tableCreatorCallback;
         this.dynamoDbRequestTimeout = dynamoDbRequestTimeout;
+        this.billingMode = billingMode;
+        this.tags = tags;
     }
 
     /**
@@ -134,6 +186,28 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
      */
     @Override
     public boolean createLeaseTableIfNotExists(@NonNull final Long readCapacity, @NonNull final Long writeCapacity)
+            throws ProvisionedThroughputException, DependencyException {
+        final CreateTableRequest.Builder builder = createTableRequestBuilder();
+        if (BillingMode.PROVISIONED.equals(billingMode)) {
+            ProvisionedThroughput throughput = ProvisionedThroughput.builder().readCapacityUnits(readCapacity)
+                .writeCapacityUnits(writeCapacity).build();
+            builder.provisionedThroughput(throughput);
+        }
+        return createTableIfNotExists(builder.build());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean createLeaseTableIfNotExists()
+            throws ProvisionedThroughputException, DependencyException {
+        final CreateTableRequest request = createTableRequestBuilder().build();
+
+        return createTableIfNotExists(request);
+    }
+
+    private boolean createTableIfNotExists(CreateTableRequest request)
             throws ProvisionedThroughputException, DependencyException {
         try {
             if (tableStatus() != null) {
@@ -145,10 +219,6 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
             //
             log.error("Failed to get table status for {}", table, de);
         }
-        ProvisionedThroughput throughput = ProvisionedThroughput.builder().readCapacityUnits(readCapacity)
-                .writeCapacityUnits(writeCapacity).build();
-        CreateTableRequest request = CreateTableRequest.builder().tableName(table).keySchema(serializer.getKeySchema())
-                .attributeDefinitions(serializer.getAttributeDefinitions()).provisionedThroughput(throughput).build();
 
         final AWSExceptionManager exceptionManager = createExceptionManager();
         exceptionManager.add(ResourceInUseException.class, t -> t);
@@ -179,7 +249,8 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
      */
     @Override
     public boolean leaseTableExists() throws DependencyException {
-        return TableStatus.ACTIVE == tableStatus();
+        TableStatus tableStatus = tableStatus();
+        return TableStatus.ACTIVE == tableStatus || TableStatus.UPDATING == tableStatus;
     }
 
     private TableStatus tableStatus() throws DependencyException {
@@ -256,8 +327,17 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
      * {@inheritDoc}
      */
     @Override
+    public List<Lease> listLeasesForStream(StreamIdentifier streamIdentifier) throws DependencyException,
+            InvalidStateException, ProvisionedThroughputException {
+        return list( null, streamIdentifier);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public List<Lease> listLeases() throws DependencyException, InvalidStateException, ProvisionedThroughputException {
-        return list(null);
+        return list(null, null);
     }
 
     /**
@@ -266,22 +346,50 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
     @Override
     public boolean isLeaseTableEmpty()
             throws DependencyException, InvalidStateException, ProvisionedThroughputException {
-        return list(1).isEmpty();
+        return list(1, 1, null).isEmpty();
     }
 
     /**
      * List with the given page size. Package access for integration testing.
      *
      * @param limit number of items to consider at a time - used by integration tests to force paging.
+     * @param streamIdentifier streamIdentifier for multi-stream mode. Can be null.
      * @return list of leases
      * @throws InvalidStateException if table does not exist
      * @throws DependencyException if DynamoDB scan fail in an unexpected way
      * @throws ProvisionedThroughputException if DynamoDB scan fail due to exceeded capacity
      */
-    List<Lease> list(Integer limit) throws DependencyException, InvalidStateException, ProvisionedThroughputException {
+    List<Lease> list(Integer limit, StreamIdentifier streamIdentifier)
+            throws DependencyException, InvalidStateException, ProvisionedThroughputException {
+        return list(limit, Integer.MAX_VALUE, streamIdentifier);
+    }
+
+    /**
+     * List with the given page size. Package access for integration testing.
+     *
+     * @param limit number of items to consider at a time - used by integration tests to force paging.
+     * @param maxPages mad paginated scan calls
+     * @param streamIdentifier streamIdentifier for multi-stream mode. Can be null.
+     * @return list of leases
+     * @throws InvalidStateException if table does not exist
+     * @throws DependencyException if DynamoDB scan fail in an unexpected way
+     * @throws ProvisionedThroughputException if DynamoDB scan fail due to exceeded capacity
+     */
+    private List<Lease> list(Integer limit, Integer maxPages, StreamIdentifier streamIdentifier) throws DependencyException, InvalidStateException,
+            ProvisionedThroughputException {
+
         log.debug("Listing leases from table {}", table);
 
         ScanRequest.Builder scanRequestBuilder = ScanRequest.builder().tableName(table);
+
+        if (streamIdentifier != null) {
+            final Map<String, AttributeValue> expressionAttributeValues = ImmutableMap.of(
+                 DDB_STREAM_NAME, AttributeValue.builder().s(streamIdentifier.serialize()).build()
+            );
+            scanRequestBuilder = scanRequestBuilder.filterExpression(STREAM_NAME + " = " + DDB_STREAM_NAME)
+                    .expressionAttributeValues(expressionAttributeValues);
+        }
+
         if (limit != null) {
             scanRequestBuilder = scanRequestBuilder.limit(limit);
         }
@@ -303,7 +411,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
                     }
 
                     Map<String, AttributeValue> lastEvaluatedKey = scanResult.lastEvaluatedKey();
-                    if (CollectionUtils.isNullOrEmpty(lastEvaluatedKey)) {
+                    if (CollectionUtils.isNullOrEmpty(lastEvaluatedKey) || --maxPages <= 0) {
                         // Signify that we're done.
                         scanResult = null;
                         log.debug("lastEvaluatedKey was null - scan finished.");
@@ -337,7 +445,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
     @Override
     public boolean createLeaseIfNotExists(@NonNull final Lease lease)
             throws DependencyException, InvalidStateException, ProvisionedThroughputException {
-        log.debug("Creating lease {}", lease);
+        log.debug("Creating lease: {}", lease);
 
         PutItemRequest request = PutItemRequest.builder().tableName(table).item(serializer.toDynamoRecord(lease))
                 .expected(serializer.getDynamoNonexistantExpectation()).build();
@@ -360,6 +468,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
         } catch (DynamoDbException | TimeoutException e) {
             throw convertAndRethrowExceptions("create", lease.leaseKey(), e);
         }
+        log.info("Created lease: {}", lease);
         return true;
     }
 
@@ -384,7 +493,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
                     return null;
                 } else {
                     final Lease lease = serializer.fromDynamoRecord(dynamoRecord);
-                    log.debug("Got lease {}", lease);
+                    log.debug("Retrieved lease: {}", lease);
                     return lease;
                 }
             } catch (ExecutionException e) {
@@ -443,6 +552,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
         }
 
         lease.leaseCounter(lease.leaseCounter() + 1);
+        log.debug("Renewed lease with key {}", lease.leaseKey());
         return true;
     }
 
@@ -490,6 +600,8 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
             lease.ownerSwitchesSinceCheckpoint(lease.ownerSwitchesSinceCheckpoint() + 1);
         }
 
+        log.info("Transferred lease {} ownership from {} to {}", lease.leaseKey(), oldOwner, owner);
+
         return true;
     }
 
@@ -528,6 +640,8 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
 
         lease.leaseOwner(null);
         lease.leaseCounter(lease.leaseCounter() + 1);
+
+        log.info("Evicted lease with leaseKey {}", lease.leaseKey());
         return true;
     }
 
@@ -556,6 +670,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
             } catch (DynamoDbException | TimeoutException e) {
                 throw convertAndRethrowExceptions("deleteAll", lease.leaseKey(), e);
             }
+            log.debug("Deleted lease {} from table {}", lease.leaseKey(), table);
         }
     }
 
@@ -583,6 +698,8 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
         } catch (DynamoDbException | TimeoutException e) {
             throw convertAndRethrowExceptions("delete", lease.leaseKey(), e);
         }
+
+        log.info("Deleted lease with leaseKey {}", lease.leaseKey());
     }
 
     /**
@@ -591,7 +708,7 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
     @Override
     public boolean updateLease(@NonNull final Lease lease)
             throws DependencyException, InvalidStateException, ProvisionedThroughputException {
-        log.debug("Updating lease {}", lease);
+        log.debug("Updating lease: {}", lease);
 
         final AWSExceptionManager exceptionManager = createExceptionManager();
         exceptionManager.add(ConditionalCheckFailedException.class, t -> t);
@@ -619,17 +736,46 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
         }
 
         lease.leaseCounter(lease.leaseCounter() + 1);
+        log.info("Updated lease {}.", lease.leaseKey());
         return true;
+    }
+
+    @Override
+    public void updateLeaseWithMetaInfo(Lease lease, UpdateField updateField)
+            throws DependencyException, InvalidStateException, ProvisionedThroughputException {
+        log.debug("Updating lease without expectation {}", lease);
+        final AWSExceptionManager exceptionManager = createExceptionManager();
+        exceptionManager.add(ConditionalCheckFailedException.class, t -> t);
+        Map<String, AttributeValueUpdate> updates = serializer.getDynamoUpdateLeaseUpdate(lease, updateField);
+        UpdateItemRequest request = UpdateItemRequest.builder().tableName(table).key(serializer.getDynamoHashKey(lease))
+                .expected(serializer.getDynamoExistentExpectation(lease.leaseKey()))
+                .attributeUpdates(updates).build();
+        try {
+            try {
+                FutureUtils.resolveOrCancelFuture(dynamoDBClient.updateItem(request), dynamoDbRequestTimeout);
+            } catch (ExecutionException e) {
+                throw exceptionManager.apply(e.getCause());
+            } catch (InterruptedException e) {
+                throw new DependencyException(e);
+            }
+        } catch (ConditionalCheckFailedException e) {
+            log.warn("Lease update failed for lease with key {} because the lease did not exist at the time of the update",
+                    lease.leaseKey(), e);
+        } catch (DynamoDbException | TimeoutException e) {
+            throw convertAndRethrowExceptions("update", lease.leaseKey(), e);
+        }
+
+        log.info("Updated lease without expectation {}.", lease);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ExtendedSequenceNumber getCheckpoint(String shardId)
+    public ExtendedSequenceNumber getCheckpoint(String leaseKey)
             throws ProvisionedThroughputException, InvalidStateException, DependencyException {
         ExtendedSequenceNumber checkpoint = null;
-        Lease lease = getLease(shardId);
+        Lease lease = getLease(leaseKey);
         if (lease != null) {
             checkpoint = lease.checkpoint();
         }
@@ -655,6 +801,16 @@ public class DynamoDBLeaseRefresher implements LeaseRefresher {
         } else {
             return new DependencyException(e);
         }
+    }
+
+    private CreateTableRequest.Builder createTableRequestBuilder() {
+        final CreateTableRequest.Builder builder = CreateTableRequest.builder().tableName(table).keySchema(serializer.getKeySchema())
+                        .attributeDefinitions(serializer.getAttributeDefinitions())
+                        .tags(tags);
+        if (BillingMode.PAY_PER_REQUEST.equals(billingMode)) {
+            builder.billingMode(billingMode);
+        }
+        return builder;
     }
 
     private AWSExceptionManager createExceptionManager() {

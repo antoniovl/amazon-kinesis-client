@@ -19,6 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -71,6 +72,8 @@ public class MultiLangDaemonConfiguration {
     private String applicationName;
 
     private String streamName;
+    private String streamArn;
+
 
     @ConfigurationSettable(configurationClass = ConfigsBuilder.class)
     private String tableName;
@@ -130,6 +133,8 @@ public class MultiLangDaemonConfiguration {
     private ShardPrioritization shardPrioritization;
     @ConfigurationSettable(configurationClass = CoordinatorConfig.class)
     private boolean skipShardSyncAtWorkerInitializationIfLeasesExist;
+    @ConfigurationSettable(configurationClass = CoordinatorConfig.class)
+    private long schedulerInitializationBackoffTimeMillis;
 
     @ConfigurationSettable(configurationClass = LifecycleConfig.class)
     private long taskBackoffTimeMillis;
@@ -153,7 +158,6 @@ public class MultiLangDaemonConfiguration {
         metricsEnabledDimensions = new HashSet<>(Arrays.asList(dimensions));
     }
 
-
     private RetrievalMode retrievalMode = RetrievalMode.DEFAULT;
 
     private final FanoutConfigBean fanoutConfig = new FanoutConfigBean();
@@ -164,7 +168,6 @@ public class MultiLangDaemonConfiguration {
 
     private long shutdownGraceMillis;
     private Integer timeoutInSeconds;
-
 
     private final BuilderDynaBean kinesisCredentialsProvider;
 
@@ -194,6 +197,14 @@ public class MultiLangDaemonConfiguration {
     public MultiLangDaemonConfiguration(BeanUtilsBean utilsBean, ConvertUtilsBean convertUtilsBean) {
         this.utilsBean = utilsBean;
         this.convertUtilsBean = convertUtilsBean;
+
+        convertUtilsBean.register(new Converter() {
+            @Override
+            public <T> T convert(Class<T> type, Object value) {
+                Date date = new Date(Long.parseLong(value.toString()) * 1000L);
+                return type.cast(InitialPositionInStreamExtended.newInitialPositionAtTimestamp(date));
+            }
+        }, InitialPositionInStreamExtended.class);
 
         convertUtilsBean.register(new Converter() {
             @Override

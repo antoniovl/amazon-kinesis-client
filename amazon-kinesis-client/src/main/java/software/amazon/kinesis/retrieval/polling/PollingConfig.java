@@ -17,36 +17,49 @@ package software.amazon.kinesis.retrieval.polling;
 
 import java.time.Duration;
 import java.util.Optional;
-
-import lombok.Data;
+import java.util.function.Function;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.model.GetRecordsRequest;
+import software.amazon.kinesis.retrieval.DataFetcherProviderConfig;
 import software.amazon.kinesis.retrieval.RecordsFetcherFactory;
 import software.amazon.kinesis.retrieval.RetrievalFactory;
 import software.amazon.kinesis.retrieval.RetrievalSpecificConfig;
 
 @Accessors(fluent = true)
-@Data
 @Getter
+@Setter
+@ToString
+@EqualsAndHashCode
 public class PollingConfig implements RetrievalSpecificConfig {
 
     public static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
     /**
-     * Name of the Kinesis stream.
-     *
-     * @return String
+     * Configurable functional interface to override the existing DataFetcher.
      */
-    @NonNull
-    private final String streamName;
+    Function<DataFetcherProviderConfig, DataFetcher> dataFetcherProvider;
+    /**
+     * Name of the Kinesis stream.
+     */
+    private String streamName;
+
+    private boolean usePollingConfigIdleTimeValue;
+
+    /**
+     * @param kinesisClient Client used to access Kinesis services.
+     */
+    public PollingConfig(KinesisAsyncClient kinesisClient) {
+        this.kinesisClient = kinesisClient;
+    }
 
     /**
      * Client used to access to Kinesis service.
-     *
-     * @return {@link KinesisAsyncClient}
      */
     @NonNull
     private final KinesisAsyncClient kinesisClient;
@@ -61,7 +74,16 @@ public class PollingConfig implements RetrievalSpecificConfig {
     private int maxRecords = 10000;
 
     /**
-     * The value for how long the ShardConsumer should sleep if no records are returned from the call to
+     * @param streamName    Name of Kinesis stream.
+     * @param kinesisClient Client used to access Kinesis serivces.
+     */
+    public PollingConfig(String streamName, KinesisAsyncClient kinesisClient) {
+        this.kinesisClient = kinesisClient;
+        this.streamName = streamName;
+    }
+
+    /**
+     * The value for how long the ShardConsumer should sleep in between calls to
      * {@link KinesisAsyncClient#getRecords(GetRecordsRequest)}.
      *
      * <p>
@@ -98,13 +120,37 @@ public class PollingConfig implements RetrievalSpecificConfig {
     private RecordsFetcherFactory recordsFetcherFactory = new SimpleRecordsFetcherFactory();
 
     /**
+     * Set the value for how long the ShardConsumer should sleep in between calls to
+     * {@link KinesisAsyncClient#getRecords(GetRecordsRequest)}. If this is not specified here the value provided in
+     * {@link RecordsFetcherFactory} will be used.
+     */
+    public void setIdleTimeBetweenReadsInMillis(long idleTimeBetweenReadsInMillis) {
+        usePollingConfigIdleTimeValue = true;
+        this.idleTimeBetweenReadsInMillis = idleTimeBetweenReadsInMillis;
+    }
+
+    /**
      * The maximum time to wait for a future request from Kinesis to complete
      */
     private Duration kinesisRequestTimeout = DEFAULT_REQUEST_TIMEOUT;
 
     @Override
     public RetrievalFactory retrievalFactory() {
+        // Prioritize the PollingConfig specified value if its updated.
+        if (usePollingConfigIdleTimeValue) {
+            recordsFetcherFactory.idleMillisBetweenCalls(idleTimeBetweenReadsInMillis);
+        }
         return new SynchronousBlockingRetrievalFactory(streamName(), kinesisClient(), recordsFetcherFactory,
-                maxRecords(), kinesisRequestTimeout);
+                maxRecords(), kinesisRequestTimeout, dataFetcherProvider);
+    }
+
+    @Override
+    public void validateState(final boolean isMultiStream) {
+        if (isMultiStream) {
+            if (streamName() != null) {
+                throw new IllegalArgumentException(
+                        "PollingConfig must not have streamName configured in multi-stream mode");
+            }
+        }
     }
 }

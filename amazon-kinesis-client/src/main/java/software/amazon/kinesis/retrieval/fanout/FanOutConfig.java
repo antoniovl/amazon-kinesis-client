@@ -82,15 +82,21 @@ public class FanOutConfig implements RetrievalSpecificConfig {
 
     @Override
     public RetrievalFactory retrievalFactory() {
-        return new FanOutRetrievalFactory(kinesisClient, getOrCreateConsumerArn());
+        return new FanOutRetrievalFactory(kinesisClient, streamName, consumerArn, this::getOrCreateConsumerArn);
     }
 
-    private String getOrCreateConsumerArn() {
-        if (consumerArn != null) {
-            return consumerArn;
+    @Override
+    public void validateState(final boolean isMultiStream) {
+        if (isMultiStream) {
+            if ((streamName() != null) || (consumerArn() != null)) {
+                throw new IllegalArgumentException(
+                        "FanOutConfig must not have streamName/consumerArn configured in multi-stream mode");
+            }
         }
+    }
 
-        FanOutConsumerRegistration registration = createConsumerRegistration();
+    private String getOrCreateConsumerArn(String streamName) {
+        FanOutConsumerRegistration registration = createConsumerRegistration(streamName);
         try {
             return registration.getOrCreateStreamConsumerArn();
         } catch (DependencyException e) {
@@ -98,10 +104,10 @@ public class FanOutConfig implements RetrievalSpecificConfig {
         }
     }
 
-    private FanOutConsumerRegistration createConsumerRegistration() {
+    private FanOutConsumerRegistration createConsumerRegistration(String streamName) {
         String consumerToCreate = ObjectUtils.firstNonNull(consumerName(), applicationName());
         return createConsumerRegistration(kinesisClient(),
-                Preconditions.checkNotNull(streamName(), "streamName must be set for consumer creation"),
+                Preconditions.checkNotNull(streamName, "streamName must be set for consumer creation"),
                 Preconditions.checkNotNull(consumerToCreate,
                         "applicationName or consumerName must be set for consumer creation"));
 
